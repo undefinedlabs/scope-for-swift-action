@@ -1,0 +1,17 @@
+name: 'Scope for iOS'
+author: 'Ignacio Bonafonte | UndefinedLabs'
+description: 'Setup Scope for iOS to improve your MTTR of your broken builds and manage your flaky tests.'
+inputs:
+  dsn:
+    description: 'Scope DSN'
+    required: true
+  workspace:
+    description: '.xcworkspace file'
+  scheme:
+    description: 'Shared scheme'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
+branding:
+  icon: 'check-square'
+  color: 'purple'

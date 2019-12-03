@@ -1,0 +1,26 @@
+{
+  "name": "scope-for-ios-action",
+  "version": "1.0.0",
+  "description": "Scope for iOS action https://scope.dev",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/undefinedlabs/scope-for-ios-action.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/undefinedlabs/scope-for-ios-action/issues"
+  },
+  "homepage": "https://github.com/undefinedlabs/scope-for-ios-action#readme",
+  "dependencies": {
+    "@actions/core": "^1.2.0",
+    "@actions/github": "^1.1.0",
+    "@actions/exec": "^1.0.1",
+    "shelljs": "^0.8.3"
+  }
+}
