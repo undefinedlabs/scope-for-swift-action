@@ -10,7 +10,6 @@ const scopeDir = '.scope_dir';
 const derivedDataPath = scopeDir + '/derived';
 const xctestDir =  derivedDataPath + '/Build/Products/';
 const testrunJson = scopeDir + '/testrun.json';
-let dsn;
 
 async function run() {
     try {
@@ -19,7 +18,7 @@ async function run() {
       const destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
 
         if (!dsn) {
-            throw Error('Cannot find the Scope DSN');
+            core.setFailed('Cannot find the Scope DSN');
         }
 
       //Read project
@@ -35,49 +34,50 @@ async function run() {
           console.log(`Project selected: ${xcodeproj}`);
           projectParameter = '-project ' + xcodeproj;
       } else {
-          throw Error('Unable to find the workspace or xcodeproj. Please set with.workspace or.xcodeproj');
+          core.setFailed('Unable to find the workspace or xcodeproj. Please set with.workspace or.xcodeproj');
       }
 
       const scheme = getScheme(workspace, xcodeproj);
       console.log(`Scheme selected: ${scheme}`);
 
       //copy configfile
-        const configfileName = 'scopeConfig.xcconfig';
 
-        const configFilePath = scopeDir + '/' + configfileName;
+      const configfileName = 'scopeConfig.xcconfig';
 
-        if (!fs.existsSync(scopeDir)){
-            fs.mkdirSync(scopeDir);
-        }
-        fs.copyFileSync('dist/'+ configfileName, configFilePath);
+      const configFilePath = scopeDir + '/' + configfileName;
 
-        //download scope
-        await downloadLatestScope();
+      if (!fs.existsSync(scopeDir)){
+          fs.mkdirSync(scopeDir);
+      }
+      fs.copyFileSync('dist/'+ configfileName, configFilePath);
 
-        //build for testing
-        let buildCommand = 'xcodebuild build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
-            ' -scheme ' + scheme + ' -sdk ' + sdk + ' -destination \"' + destination + '\" -derivedDataPath ' + derivedDataPath;
-        await exec.exec(buildCommand, null, { ignoreReturnCode: true });
+      //download scope
+      await downloadLatestScope();
 
-        uploadSymbols(projectParameter, scheme);
+      //build for testing
+      let buildCommand = 'xcodebuild build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
+          ' -scheme ' + scheme + ' -sdk ' + sdk + ' -destination \"' + destination + '\" -derivedDataPath ' + derivedDataPath;
+      await exec.exec(buildCommand, null, { ignoreReturnCode: true });
 
-        //modify xctestrun with Scope variables
-        let testRun = getXCTestRun();
-        let plutilExportCommand = 'plutil -convert json -o ' + testrunJson + ' ' + testRun;
-        await exec.exec(plutilExportCommand, null, { ignoreReturnCode: true });
+      uploadSymbols(projectParameter, scheme);
 
-        let jsonString = fs.readFileSync(testrunJson, "utf8");
-        const testTargets = JSON.parse(jsonString);
+      //modify xctestrun with Scope variables
+      let testRun = getXCTestRun();
+      let plutilExportCommand = 'plutil -convert json -o ' + testrunJson + ' ' + testRun;
+      await exec.exec(plutilExportCommand, null, { ignoreReturnCode: true });
 
-        Object.keys(testTargets).forEach(function (name) {
-            if( name.charAt(0) != '_' ) {
-                insertEnvVariables(testRun, name)
-            }
-        });
+      let jsonString = fs.readFileSync(testrunJson, "utf8");
+      const testTargets = JSON.parse(jsonString);
 
-        //run tests
-        let testCommand = 'xcodebuild test-without-building -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
-        await exec.exec(testCommand, null, { ignoreReturnCode: true });
+      Object.keys(testTargets).forEach(function (name) {
+          if( name.charAt(0) != '_' ) {
+              insertEnvVariables(testRun, name, dsn)
+          }
+      });
+
+      //run tests
+      let testCommand = 'xcodebuild test-without-building -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
+      await exec.exec(testCommand, null, { ignoreReturnCode: true });
     } catch (error) {
       core.setFailed(error.message);
     }
@@ -163,11 +163,13 @@ const downloadFile = (async (url, path) => {
 
 function uploadSymbols(projectParameter, scheme) {
     let runScriptCommand = 'sh -c ' + scopeDir + '/scopeAgent/ScopeAgent.framework/upload_symbols';
-    const options = {};
-    options.ignoreReturnCode = true;
-    options.env = process.env;
-    options.env['TARGET_BUILD_DIR'] = xctestDir;
-    exec.exec(runScriptCommand, null, options);
+    exec.exec(runScriptCommand, null, {
+        env: {
+            ...process.env,
+            TARGET_BUILD_DIR: xctestDir,
+        },
+        ignoreReturnCode: true
+    })
 }
 
 function getXCTestRun() {
@@ -175,7 +177,7 @@ function getXCTestRun() {
     return xctestDir + testrun
 }
 
-function insertEnvVariables( file, target) {
+function insertEnvVariables( file, target, dsn) {
     //insertEnvVariable('SCOPE_DSN', '\'$(SCOPE_DSN)\'', file, target );
     insertEnvVariable('SCOPE_DSN', '\"' + dsn + '\"', file, target );
     insertEnvVariable('SCOPE_COMMIT_SHA','\"$(GITHUB_SHA)\"', file, target );
