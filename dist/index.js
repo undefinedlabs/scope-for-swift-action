@@ -178,18 +178,19 @@ function getXCTestRun() {
 }
 
 function insertEnvVariables( file, target, dsn) {
-    //insertEnvVariable('SCOPE_DSN', '\'$(SCOPE_DSN)\'', file, target );
-    insertEnvVariable('SCOPE_DSN', '\"' + dsn + '\"', file, target );
-    insertEnvVariable('SCOPE_COMMIT_SHA','\"$(GITHUB_SHA)\"', file, target );
-    insertEnvVariable('SCOPE_SOURCE_ROOT','\"$(GITHUB_WORKSPACE)\"', file, target );
-    insertEnvVariable('GITHUB_REPOSITORY','\"$(GITHUB_REPOSITORY)\"', file, target );
-    insertEnvVariable('SCOPE_COMMIT_SHA','\"$(GITHUB_SHA)\"', file, target );
+    insertEnvVariable('SCOPE_DSN', dsn, file, target );
+    insertEnvVariable('SCOPE_COMMIT_SHA', process.env['GITHUB_SHA'] || '', file, target );
+    insertEnvVariable('GITHUB_REPOSITORY',process.env['GITHUB_REPOSITORY'] | '', file, target );
+    insertEnvVariable('SCOPE_SOURCE_ROOT',process.env['GITHUB_WORKSPACE'] || '', file, target );
+    insertEnvVariable('GITLAB_CI',process.env['GITLAB_CI'] || '', file, target );
+    insertEnvVariable('CI_JOB_ID',process.env['CI_JOB_ID'] || '', file, target );
+    insertEnvVariable('CI_JOB_URL',process.env['CI_JOB_URL'] || '', file, target );
     insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
     insertEnvVariable('SCOPE_SET_GLOBAL_TRACER', "YES", file, target );
 }
 
 function insertEnvVariable( name, value, file, target) {
-    let insertCommand = 'plutil -replace \"' + target + '.TestingEnvironmentVariables.' + name + '\" -string ' + value + ' ' + file;
+    let insertCommand = 'plutil -replace \"' + target + '.EnvironmentVariables.' + name + '\" -string ' + value + ' ' + file;
     exec.exec(insertCommand, null, { ignoreReturnCode: true });
 }
 
