@@ -1,6 +1,5 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
-const path = require('path');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const shell = require('shelljs');
@@ -53,14 +52,14 @@ async function run() {
         fs.copyFileSync('dist/'+ configfileName, configFilePath);
 
         //download scope
-        await downloadLatestScope()
+        await downloadLatestScope();
 
         //build for testing
         let buildCommand = 'xcodebuild build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
             ' -scheme ' + scheme + ' -sdk ' + sdk + ' -destination \"' + destination + '\" -derivedDataPath ' + derivedDataPath;
         await exec.exec(buildCommand, null, { ignoreReturnCode: true });
 
-        uploadSymbols(projectParameter, scheme)
+        uploadSymbols(projectParameter, scheme);
 
         //modify xctestrun with Scope variables
         let testRun = getXCTestRun();
@@ -141,10 +140,10 @@ async function downloadLatestScope() {
         }
     });
     let scopeURL = versions[currentVersion];
-    let scopePath = scopeDir + '/scopeAgent.zip'
-    await downloadFile(scopeURL, scopePath)
+    let scopePath = scopeDir + '/scopeAgent.zip';
+    await downloadFile(scopeURL, scopePath);
 
-    let extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent'
+    let extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent';
     await exec.exec(extractCommand, null, { ignoreReturnCode: true });
 }
 
@@ -165,9 +164,9 @@ const downloadFile = (async (url, path) => {
 function uploadSymbols(projectParameter, scheme) {
     let runScriptCommand = 'sh -c ' + scopeDir + '/scopeAgent/ScopeAgent.framework/upload_symbols';
     const options = {};
-    options.ignoreReturnCode = true
-    options.env = process.env
-    options.env['TARGET_BUILD_DIR'] = xctestDir
+    options.ignoreReturnCode = true;
+    options.env = process.env;
+    options.env['TARGET_BUILD_DIR'] = xctestDir;
     exec.exec(runScriptCommand, null, options);
 }
 
