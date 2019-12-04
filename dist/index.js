@@ -1,26 +1,25 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
-const path = require('path')
-const fs = require('fs')
+const path = require('path');
+const fs = require('fs');
 const shell = require('shelljs');
 
 const SCOPE_DSN = 'SCOPE_DSN';
 const scopeDir = '.scope_dir';
-const derivedDataPath = scopeDir + '/derived'
-const xctestDir =  derivedDataPath + '/Build/Products/'
-const testrunJson = scopeDir + '/testrun.json'
-var dsn = core.getInput('dsn') || process.env[SCOPE_DSN];
+const derivedDataPath = scopeDir + '/derived';
+const xctestDir =  derivedDataPath + '/Build/Products/';
+const testrunJson = scopeDir + '/testrun.json';
+let dsn;
 
 async function run() {
     try {
-
-
-      if (!dsn) {
-        throw Error('Cannot find the Scope DSN');
-      }
-
+      dsn = core.getInput('dsn') || process.env[SCOPE_DSN];
       let sdk = core.getInput('sdk') || 'iphonesimulator';
       let destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
+
+        if (!dsn) {
+            throw Error('Cannot find the Scope DSN');
+        }
 
       //Read project
       const workspace  = getWorkspace();
