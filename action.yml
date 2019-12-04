@@ -1,0 +1,28 @@
+name: 'Scope for iOS'
+author: 'Ignacio Bonafonte | UndefinedLabs'
+description: 'Setup Scope for iOS to improve your MTTR of your broken builds and manage your flaky tests.'
+inputs:
+  dsn:
+    description: 'Scope DSN'
+    required: true
+  workspace:
+    description: '.xcworkspace file, if not set workspace will be autoselected'
+    required: false
+  project:
+    description: '.xcodeproj file, if not set project will be autoselected'
+    required: false
+  scheme:
+    description: 'Scheme to test, if not set scheme will be autiselected'
+    required: false
+  sdk:
+    description: 'Sdk used for building, by default: \"iphonesimulator\" will be used'
+    required: false
+  destination:
+    description: 'destination for testing, by default: \"platform=iOS Simulator,name=iPhone 11\"'
+    required: false
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
+branding:
+  icon: 'check-square'
+  color: 'purple'
