@@ -14,9 +14,9 @@ let dsn;
 
 async function run() {
     try {
-      dsn = core.getInput('dsn') || process.env[SCOPE_DSN];
-      let sdk = core.getInput('sdk') || 'iphonesimulator';
-      let destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
+      const dsn = core.getInput('dsn') || process.env[SCOPE_DSN];
+      const sdk = core.getInput('sdk') || 'iphonesimulator';
+      const destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
 
         if (!dsn) {
             throw Error('Cannot find the Scope DSN');
@@ -42,9 +42,9 @@ async function run() {
       console.log(`Scheme selected: ${scheme}`);
 
       //copy configfile
-        let configfileName = 'scopeConfig.xcconfig';
+        const configfileName = 'scopeConfig.xcconfig';
 
-        let configFilePath = scopeDir + '/' + configfileName;
+        const configFilePath = scopeDir + '/' + configfileName;
 
         if (!fs.existsSync(scopeDir)){
             fs.mkdirSync(scopeDir);
@@ -69,7 +69,7 @@ async function run() {
         let jsonString = fs.readFileSync(testrunJson, "utf8");
         const testTargets = JSON.parse(jsonString);
 
-        Object.keys(testTargets).forEach(function (name,index,array) {
+        Object.keys(testTargets).forEach(function (name) {
             if( name.charAt(0) != '_' ) {
                 insertEnvVariables(testRun, name)
             }
@@ -87,7 +87,7 @@ async function run() {
 function getWorkspace() {
     let workspace = core.getInput('workspace');
     if (!workspace) {
-        workspace = shell.ls().filter(function(file) { return file.match(/\.xcworkspace$/); })[0];
+        workspace = shell.ls().find(function(file) { return file.match(/\.xcworkspace$/); });
     }
     return workspace
 }
@@ -95,7 +95,7 @@ function getWorkspace() {
 function getXCodeProj() {
     let xcodeproj = core.getInput('xcodeproj');
     if (!xcodeproj) {
-        xcodeproj = shell.ls().filter(function(file) { return file.match(/\.xcodeproj/); })[0];
+        xcodeproj = shell.ls().find(function(file) { return file.match(/\.xcodeproj/); });
     }
     return xcodeproj;
 }
@@ -130,20 +130,20 @@ function intelligentSelectScheme(schemes, workspacePath) {
 }
 
 async function downloadLatestScope() {
-    let versionsUrl = 'https://releases.undefinedlabs.com/scope/agents/ios/ScopeAgent.json';
+    const versionsUrl = 'https://releases.undefinedlabs.com/scope/agents/ios/ScopeAgent.json';
     const jsonResponse = await fetch(versionsUrl)
     const versions = await jsonResponse.json()
     let currentVersion = '0.0.1'
-    Object.keys(versions).forEach(function (name,index,array) {
+    Object.keys(versions).forEach(function (name) {
         if( semver.gt(name,currentVersion) ) {
             currentVersion = name
         }
     });
-    let scopeURL = versions[currentVersion];
-    let scopePath = scopeDir + '/scopeAgent.zip';
+    const scopeURL = versions[currentVersion];
+    const scopePath = scopeDir + '/scopeAgent.zip';
     await downloadFile(scopeURL, scopePath);
 
-    let extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent';
+    const extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent';
     await exec.exec(extractCommand, null, { ignoreReturnCode: true });
 }
 
@@ -171,7 +171,7 @@ function uploadSymbols(projectParameter, scheme) {
 }
 
 function getXCTestRun() {
-    const testrun = shell.ls(xctestDir).filter(function(file) { return file.match(/\.xctestrun$/); })[0];
+    const testrun = shell.ls(xctestDir).find(function(file) { return file.match(/\.xctestrun$/); });
     return xctestDir + testrun
 }
 
