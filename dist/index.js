@@ -1,8 +1,10 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
 const path = require('path');
+const fetch = require('node-fetch');
 const fs = require('fs');
 const shell = require('shelljs');
+const semver = require('semver');
 
 const SCOPE_DSN = 'SCOPE_DSN';
 const scopeDir = '.scope_dir';
@@ -50,11 +52,15 @@ async function run() {
         }
         fs.copyFileSync('dist/'+ configfileName, configFilePath);
 
+        //download scope
+        await downloadLatestScope()
+
         //build for testing
         let buildCommand = 'xcodebuild build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
             ' -scheme ' + scheme + ' -sdk ' + sdk + ' -destination \"' + destination + '\" -derivedDataPath ' + derivedDataPath;
         await exec.exec(buildCommand, null, { ignoreReturnCode: true });
 
+        uploadSymbols(projectParameter, scheme)
 
         //modify xctestrun with Scope variables
         let testRun = getXCTestRun();
@@ -113,28 +119,6 @@ function getScheme(workspace, xcodeproj) {
     return scheme
 }
 
-function getXCTestRun() {
-    const testrun = shell.ls(xctestDir).filter(function(file) { return file.match(/\.xctestrun$/); })[0];
-    return xctestDir + testrun
-}
-
-function insertEnvVariables( file, target) {
-    //insertEnvVariable('SCOPE_DSN', '\'$(SCOPE_DSN)\'', file, target );
-    insertEnvVariable('SCOPE_DSN', '\"' + dsn + '\"', file, target );
-    insertEnvVariable('SCOPE_COMMIT_SHA','\"$(SCOPE_COMMIT_SHA)\"', file, target );
-    insertEnvVariable('SCOPE_SOURCE_ROOT','\"$(SCOPE_SOURCE_ROOT)\"', file, target );
-    insertEnvVariable('GITHUB_REPOSITORY','\"$(GITHUB_REPOSITORY)\"', file, target );
-    insertEnvVariable('SCOPE_COMMIT_SHA','\"$(SCOPE_COMMIT_SHA)\"', file, target );
-    insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
-    insertEnvVariable('SCOPE_SET_GLOBAL_TRACER', "YES", file, target );
-}
-
-function insertEnvVariable( name, value, file, target) {
-    let insertCommand = 'plutil -replace \"' + target + '.TestingEnvironmentVariables.' + name + '\" -string ' + value + ' ' + file;
-    exec.exec(insertCommand, null, { ignoreReturnCode: true });
-}
-
-
 function intelligentSelectScheme(schemes, workspacePath) {
     if (schemes.length < 1) {
         return null
@@ -145,5 +129,68 @@ function intelligentSelectScheme(schemes, workspacePath) {
     }
     return schemes[0]
 }
+
+async function downloadLatestScope() {
+    let versionsUrl = 'https://releases.undefinedlabs.com/scope/agents/ios/ScopeAgent.json';
+    const jsonResponse = await fetch(versionsUrl)
+    const versions = await jsonResponse.json()
+    let currentVersion = '0.0.1'
+    Object.keys(versions).forEach(function (name,index,array) {
+        if( semver.gt(name,currentVersion) ) {
+            currentVersion = name
+        }
+    });
+    let scopeURL = versions[currentVersion];
+    let scopePath = scopeDir + '/scopeAgent.zip'
+    await downloadFile(scopeURL, scopePath)
+
+    let extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent'
+    await exec.exec(extractCommand, null, { ignoreReturnCode: true });
+}
+
+const downloadFile = (async (url, path) => {
+    const res = await fetch(url);
+    const fileStream = fs.createWriteStream(path);
+    await new Promise((resolve, reject) => {
+        res.body.pipe(fileStream);
+        res.body.on("error", (err) => {
+            reject(err);
+        });
+        fileStream.on("finish", function() {
+            resolve();
+        });
+    });
+});
+
+function uploadSymbols(projectParameter, scheme) {
+    let runScriptCommand = 'sh -c ' + scopeDir + '/scopeAgent/ScopeAgent.framework/upload_symbols';
+    const options = {};
+    options.ignoreReturnCode = true
+    options.env = process.env
+    options.env['TARGET_BUILD_DIR'] = xctestDir
+    exec.exec(runScriptCommand, null, options);
+}
+
+function getXCTestRun() {
+    const testrun = shell.ls(xctestDir).filter(function(file) { return file.match(/\.xctestrun$/); })[0];
+    return xctestDir + testrun
+}
+
+function insertEnvVariables( file, target) {
+    //insertEnvVariable('SCOPE_DSN', '\'$(SCOPE_DSN)\'', file, target );
+    insertEnvVariable('SCOPE_DSN', '\"' + dsn + '\"', file, target );
+    insertEnvVariable('SCOPE_COMMIT_SHA','\"$(GITHUB_SHA)\"', file, target );
+    insertEnvVariable('SCOPE_SOURCE_ROOT','\"$(GITHUB_WORKSPACE)\"', file, target );
+    insertEnvVariable('GITHUB_REPOSITORY','\"$(GITHUB_REPOSITORY)\"', file, target );
+    insertEnvVariable('SCOPE_COMMIT_SHA','\"$(GITHUB_SHA)\"', file, target );
+    insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
+    insertEnvVariable('SCOPE_SET_GLOBAL_TRACER', "YES", file, target );
+}
+
+function insertEnvVariable( name, value, file, target) {
+    let insertCommand = 'plutil -replace \"' + target + '.TestingEnvironmentVariables.' + name + '\" -string ' + value + ' ' + file;
+    exec.exec(insertCommand, null, { ignoreReturnCode: true });
+}
+
 
 run();

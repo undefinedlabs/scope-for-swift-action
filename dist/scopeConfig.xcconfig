@@ -2,6 +2,6 @@
 // https://help.apple.com/xcode/#/dev745c5c974
 
 
-FRAMEWORK_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir
+FRAMEWORK_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
 OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent
-LD_RUNPATH_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir
+LD_RUNPATH_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
