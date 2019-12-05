@@ -96,7 +96,7 @@ async function run() {
       if (!fs.existsSync(scopeDir)){
           fs.mkdirSync(scopeDir);
       }
-      fs.copyFileSync('dist/'+ configfileName, configFilePath);
+      createXCConfigFile(configFilePath)
 
       //download scope
       await downloadLatestScope();
@@ -198,6 +198,18 @@ function intelligentSelectScheme(schemes, workspacePath) {
         return workspaceName
     }
     return schemes[0]
+}
+
+function createXCConfigFile(path) {
+    let configText = `
+ // Configuration settings file format documentation can be found at:
+ // https://help.apple.com/xcode/#/dev745c5c974
+
+FRAMEWORK_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
+OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent
+LD_RUNPATH_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
+ `
+    fs.writeFileSync(path, configText,null);
 }
 
 async function downloadLatestScope() {
