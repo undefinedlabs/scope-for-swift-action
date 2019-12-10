@@ -205,9 +205,9 @@ function createXCConfigFile(path) {
  // Configuration settings file format documentation can be found at:
  // https://help.apple.com/xcode/#/dev745c5c974
 
-FRAMEWORK_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
+FRAMEWORK_SEARCH_PATHS = $(inherited) ./.scope_dir/scopeAgent
 OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent
-LD_RUNPATH_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
+LD_RUNPATH_SEARCH_PATHS = $(inherited) ./.scope_dir/scopeAgent
  `
     fs.writeFileSync(path, configText,null);
 }
