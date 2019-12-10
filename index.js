@@ -4,8 +4,9 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const semver = require('semver');
 
+const pwd = process.env['PWD'];
 const SCOPE_DSN = 'SCOPE_DSN';
-const scopeDir = '.scope_dir';
+const scopeDir = pwd + '/.scope_dir';
 const derivedDataPath = scopeDir + '/derived';
 const xctestDir =  derivedDataPath + '/Build/Products/';
 const testrunJson = scopeDir + '/testrun.json';
@@ -20,7 +21,7 @@ async function run() {
             core.setFailed('Cannot find the Scope DSN');
         }
 
-      //Read project
+        //Read project
       const workspace  = await getWorkspace();
       const xcodeproj = await getXCodeProj();
 
@@ -63,7 +64,7 @@ async function run() {
       //modify xctestrun with Scope variables
       let testRun = await getXCTestRun();
       let plutilExportCommand = 'plutil -convert json -o ' + testrunJson + ' ' + testRun;
-      await exec.exec(plutilExportCommand, null, { ignoreReturnCode: true });
+      await exec.exec(plutilExportCommand, null, null );
 
       let jsonString = fs.readFileSync(testrunJson, "utf8");
       const testTargets = JSON.parse(jsonString);
@@ -156,11 +157,12 @@ function createXCConfigFile(path) {
     let configText = `
  // Configuration settings file format documentation can be found at:
  // https://help.apple.com/xcode/#/dev745c5c974
+ 
+` +
+'FRAMEWORK_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n' +
+'OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n' +
+'LD_RUNPATH_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n'
 
-FRAMEWORK_SEARCH_PATHS = $(inherited) ./.scope_dir/scopeAgent
-OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent
-LD_RUNPATH_SEARCH_PATHS = $(inherited) ./.scope_dir/scopeAgent
- `
     fs.writeFileSync(path, configText,null);
 }
 
@@ -204,7 +206,7 @@ function uploadSymbols(projectParameter, scheme, dsn) {
             SCOPE_DSN: dsn,
             TARGET_BUILD_DIR: xctestDir,
         },
-        ignoreReturnCode: true
+        ignoreReturnCode: false
     })
 }
 
