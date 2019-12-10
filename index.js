@@ -58,7 +58,7 @@ async function run() {
           ' -scheme ' + scheme + ' -sdk ' + sdk + ' -derivedDataPath ' + derivedDataPath + ' -destination \"' + destination + '\"';
       const result = await exec.exec(buildCommand, null, { ignoreReturnCode: true });
 
-      uploadSymbols(projectParameter, scheme);
+      uploadSymbols(projectParameter, scheme, dsn);
 
       //modify xctestrun with Scope variables
       let testRun = await getXCTestRun();
@@ -196,7 +196,7 @@ const downloadFile = (async (url, path) => {
     });
 });
 
-function uploadSymbols(projectParameter, scheme) {
+function uploadSymbols(projectParameter, scheme, dsn) {
     let runScriptCommand = 'sh -c ' + scopeDir + '/scopeAgent/ScopeAgent.framework/upload_symbols';
     exec.exec(runScriptCommand, null, {
         env: {
