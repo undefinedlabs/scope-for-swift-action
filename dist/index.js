@@ -249,6 +249,7 @@ function uploadSymbols(projectParameter, scheme) {
     exec.exec(runScriptCommand, null, {
         env: {
             ...process.env,
+            SCOPE_DSN: dsn,
             TARGET_BUILD_DIR: xctestDir,
         },
         ignoreReturnCode: true
