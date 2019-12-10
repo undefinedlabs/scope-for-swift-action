@@ -16,8 +16,6 @@ GitHub Action to run your tests automatically instrumented with the [Scope iOS a
 
    ```yaml
    steps:
-     - name: Check if SCOPE_DSN is set
-       run: if [ "${{secrets.SCOPE_DSN}}" = "" ]; then exit 1; fi
      - name: Checkout
        uses: actions/checkout@v1
      - name: Scope for iOS
