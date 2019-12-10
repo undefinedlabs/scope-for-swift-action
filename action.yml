@@ -1,6 +1,6 @@
 name: 'Scope for iOS'
-author: 'Ignacio Bonafonte | UndefinedLabs'
-description: 'Setup Scope for iOS to improve your MTTR of your broken builds and manage your flaky tests.'
+author: 'Undefined Labs'
+description: 'Automatically instruments and runs your tests using the Scope iOS agent'
 inputs:
   dsn:
     description: 'Scope DSN'

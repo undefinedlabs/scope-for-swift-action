@@ -30,7 +30,7 @@ GitHub Action to run your tests automatically instrumented with the [Scope iOS a
 
 ## Configuration
 
-As described in the yml, these are the optional parameters of the action:
+These are the optional parameters of the action:
 
 ```yaml
 workspace: .xcworkspace file, if not set workspace will be autoselected
