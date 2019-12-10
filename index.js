@@ -3,8 +3,9 @@ const exec = require('@actions/exec');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const semver = require('semver');
+const os = require('os');
 
-const pwd = process.env['PWD'];
+const pwd = os.tmpdir();
 const SCOPE_DSN = 'SCOPE_DSN';
 const scopeDir = pwd + '/.scope_dir';
 const derivedDataPath = scopeDir + '/derived';

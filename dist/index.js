@@ -51,8 +51,9 @@ const exec = __webpack_require__(230);
 const fetch = __webpack_require__(735);
 const fs = __webpack_require__(747);
 const semver = __webpack_require__(105);
+const os = __webpack_require__(87);
 
-const pwd = process.env['PWD'];
+const pwd = os.tmpdir();
 const SCOPE_DSN = 'SCOPE_DSN';
 const scopeDir = pwd + '/.scope_dir';
 const derivedDataPath = scopeDir + '/derived';
