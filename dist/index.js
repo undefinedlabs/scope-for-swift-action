@@ -53,9 +53,9 @@ const fs = __webpack_require__(747);
 const semver = __webpack_require__(105);
 const os = __webpack_require__(87);
 
-const pwd = os.tmpdir();
+const temp = os.tmpdir();
 const SCOPE_DSN = 'SCOPE_DSN';
-const scopeDir = pwd + '/.scope_dir';
+const scopeDir = temp + '/.scope_dir';
 const derivedDataPath = scopeDir + '/derived';
 const xctestDir =  derivedDataPath + '/Build/Products/';
 const testrunJson = scopeDir + '/testrun.json';

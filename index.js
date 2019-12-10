@@ -5,9 +5,9 @@ const fs = require('fs');
 const semver = require('semver');
 const os = require('os');
 
-const pwd = os.tmpdir();
+const temp = os.tmpdir();
 const SCOPE_DSN = 'SCOPE_DSN';
-const scopeDir = pwd + '/.scope_dir';
+const scopeDir = temp + '/.scope_dir';
 const derivedDataPath = scopeDir + '/derived';
 const xctestDir =  derivedDataPath + '/Build/Products/';
 const testrunJson = scopeDir + '/testrun.json';
