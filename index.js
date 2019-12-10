@@ -3,9 +3,11 @@ const exec = require('@actions/exec');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const semver = require('semver');
+const os = require('os');
 
+const temp = os.tmpdir();
 const SCOPE_DSN = 'SCOPE_DSN';
-const scopeDir = '.scope_dir';
+const scopeDir = temp + '/.scope_dir';
 const derivedDataPath = scopeDir + '/derived';
 const xctestDir =  derivedDataPath + '/Build/Products/';
 const testrunJson = scopeDir + '/testrun.json';
@@ -20,7 +22,7 @@ async function run() {
             core.setFailed('Cannot find the Scope DSN');
         }
 
-      //Read project
+        //Read project
       const workspace  = await getWorkspace();
       const xcodeproj = await getXCodeProj();
 
@@ -55,15 +57,15 @@ async function run() {
 
       //build for testing
       let buildCommand = 'xcodebuild build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
-          ' -scheme ' + scheme + ' -sdk ' + sdk + ' -destination \"' + destination + '\" -derivedDataPath ' + derivedDataPath;
-      const result = await exec.exec(buildCommand, null, { ignoreReturnCode: true });
+          ' -scheme ' + scheme + ' -sdk ' + sdk + ' -derivedDataPath ' + derivedDataPath + ' -destination \"' + destination + '\"';
+      const result = await exec.exec(buildCommand, null, null);
 
-      uploadSymbols(projectParameter, scheme);
+      uploadSymbols(projectParameter, scheme, dsn);
 
       //modify xctestrun with Scope variables
       let testRun = await getXCTestRun();
       let plutilExportCommand = 'plutil -convert json -o ' + testrunJson + ' ' + testRun;
-      await exec.exec(plutilExportCommand, null, { ignoreReturnCode: true });
+      await exec.exec(plutilExportCommand, null, null );
 
       let jsonString = fs.readFileSync(testrunJson, "utf8");
       const testTargets = JSON.parse(jsonString);
@@ -76,7 +78,7 @@ async function run() {
       }
       //run tests
       let testCommand = 'xcodebuild test-without-building -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
-      await exec.exec(testCommand, null, { ignoreReturnCode: true });
+      await exec.exec(testCommand, null, null );
     } catch (error) {
       core.setFailed(error.message);
     }
@@ -156,11 +158,12 @@ function createXCConfigFile(path) {
     let configText = `
  // Configuration settings file format documentation can be found at:
  // https://help.apple.com/xcode/#/dev745c5c974
+ 
+` +
+'FRAMEWORK_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n' +
+'OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n' +
+'LD_RUNPATH_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n'
 
-FRAMEWORK_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
-OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent
-LD_RUNPATH_SEARCH_PATHS = $(inherited) $(PWD)/.scope_dir/scopeAgent
- `
     fs.writeFileSync(path, configText,null);
 }
 
@@ -179,7 +182,7 @@ async function downloadLatestScope() {
     await downloadFile(scopeURL, scopePath);
 
     const extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent';
-    await exec.exec(extractCommand, null, { ignoreReturnCode: true });
+    await exec.exec(extractCommand, null, null );
 }
 
 const downloadFile = (async (url, path) => {
@@ -196,14 +199,15 @@ const downloadFile = (async (url, path) => {
     });
 });
 
-function uploadSymbols(projectParameter, scheme) {
+function uploadSymbols(projectParameter, scheme, dsn) {
     let runScriptCommand = 'sh -c ' + scopeDir + '/scopeAgent/ScopeAgent.framework/upload_symbols';
     exec.exec(runScriptCommand, null, {
         env: {
             ...process.env,
+            SCOPE_DSN: dsn,
             TARGET_BUILD_DIR: xctestDir,
         },
-        ignoreReturnCode: true
+        ignoreReturnCode: false
     })
 }
 
@@ -236,7 +240,7 @@ async function insertEnvVariables( file, target, dsn) {
 async function insertEnvVariable( name, value, file, target) {
     if( value !== '') {
         let insertCommand = 'plutil -replace \"' + target + '.EnvironmentVariables.' + name + '\" -string ' + value + ' ' + file;
-        await exec.exec(insertCommand, null, {ignoreReturnCode: true});
+        await exec.exec(insertCommand, null, null);
     }
 }
 
