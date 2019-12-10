@@ -12,7 +12,7 @@ inputs:
     description: '.xcodeproj file, if not set project will be autoselected'
     required: false
   scheme:
-    description: 'Scheme to test, if not set scheme will be autiselected'
+    description: 'Scheme to test, if not set scheme will be autoselected'
     required: false
   sdk:
     description: 'Sdk used for building, by default: \"iphonesimulator\" will be used'
