@@ -179,6 +179,7 @@ function createXCConfigFile(path) {
  // Configuration settings file format documentation can be found at:
  // https://help.apple.com/xcode/#/dev745c5c974
  
+ DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
 ` +
 'FRAMEWORK_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n' +
 'OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n' +
