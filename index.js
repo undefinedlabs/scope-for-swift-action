@@ -24,8 +24,8 @@ async function run() {
 
         //Read project
       const workspace  = await getWorkspace();
-      const xcodeproj = await getXCodeProj();
-
+      let xcodeproj = await getXCodeProj();
+      let isSPM = false;
       var projectParameter;
 
       if(workspace) {
@@ -34,7 +34,12 @@ async function run() {
       } else if (xcodeproj) {
           console.log(`Project selected: ${xcodeproj}`);
           projectParameter = '-project ' + xcodeproj;
-      } else {
+      } else if (fs.existsSync('Package.swift')) {
+          isSPM = true
+          xcodeproj = await generateProjectFromSPM();
+          projectParameter = '-project ' + xcodeproj;
+      }
+      else {
           core.setFailed('Unable to find the workspace or xcodeproj. Please set with.workspace or.xcodeproj');
       }
 
@@ -117,6 +122,19 @@ async function getXCodeProj() {
     return xcodeproj;
 }
 
+async function generateProjectFromSPM() {
+    if( fs.existsSync('Package_iOS.swift')) {
+        fs.renameSync('Package.swift', 'Package_orig.swift')
+        fs.renameSync('Package_iOS.swift', 'Package.swift')
+    }
+    let generateProjectCommand = 'swift package generate-xcodeproj --enable-code-coverage';
+    const result = await exec.exec(generateProjectCommand, null, null);
+    console.log(`SPM package`);
+    xcodeproj = await getXCodeProj();
+    return xcodeproj
+}
+
+
 async function getScheme(workspace, xcodeproj) {
     let scheme = core.getInput('scheme');
     if (!scheme) {
@@ -151,7 +169,9 @@ function intelligentSelectScheme(schemes, workspacePath) {
     if (schemes.includes(workspaceName)) {
         return workspaceName
     }
-    return schemes[0]
+    var el = schemes.find(a =>a.includes(workspaceName));
+
+    return el || schemes[0]
 }
 
 function createXCConfigFile(path) {
@@ -159,6 +179,7 @@ function createXCConfigFile(path) {
  // Configuration settings file format documentation can be found at:
  // https://help.apple.com/xcode/#/dev745c5c974
  
+ DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
 ` +
 'FRAMEWORK_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n' +
 'OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n' +
