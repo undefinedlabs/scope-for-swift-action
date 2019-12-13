@@ -2,7 +2,7 @@
 
 # Scope for iOS Action
 
-GitHub Action to run your tests automatically instrumented with the [Scope iOS agent](http://home.undefinedlabs.com/goto/ios-agent).
+GitHub Action to run your tests automatically instrumented with the [Scope iOS agent](http://home.undefinedlabs.com/goto/ios-agent). It supports Xcode projects as well as Swift Package Manager packages.
 
 ## About Scope
 
@@ -39,3 +39,4 @@ destination: destination for testing, by default: 'platform=iOS Simulator,name=i
 
 ```
 
+<!--For SPM packages, in the case of multiplatform projects, executable targets are not supported in iOS. Desabling targets per platform is still not supported in SPM, so in the meantime you can put a Package_iOS.swift beside de original Package.swift and the action will use this for building-->
