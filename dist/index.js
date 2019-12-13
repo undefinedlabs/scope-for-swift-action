@@ -67,7 +67,7 @@ async function run() {
       const destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
 
         if (!dsn) {
-            core.setFailed('Cannot find the Scope DSN');
+            core.error('Cannot find the SCOPE_DSN secret');
         }
 
         //Read project
@@ -132,6 +132,10 @@ async function run() {
       //run tests
       let testCommand = 'xcodebuild test-without-building -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
       await exec.exec(testCommand, null, null );
+
+        if (!dsn) {
+            core.warning('SCOPE_DSN not found in secrets, results wont be uploaded to Scope app');
+        }
     } catch (error) {
       core.setFailed(error.message);
     }
