@@ -80,7 +80,12 @@ async function run() {
       }
       //run tests
       let testCommand = 'xcodebuild test-without-building -enableCodeCoverage YES -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
-      await exec.exec(testCommand, null, null );
+      let testError;
+      try {
+          await exec.exec(testCommand, null, null);
+      } catch (error) {
+          testError = error.message
+      }
 
       //build command settings
       let buildCommandSettings = 'xcodebuild -showBuildSettings -json -configuration '+ configuration + ' build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
@@ -102,6 +107,10 @@ async function run() {
 
       if (!dsn) {
           core.warning('SCOPE_DSN not found in secrets, results wont be uploaded to Scope app');
+      }
+
+      if (testError) {
+          core.setFailed(testError.message);
       }
     } catch (error) {
       core.setFailed(error.message);
