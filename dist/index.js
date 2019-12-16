@@ -106,7 +106,7 @@ async function run() {
       await downloadLatestScope();
 
       //build for testing
-      let buildCommand = 'xcodebuild build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter + ' -configuration '+ configuration +
+      let buildCommand = 'xcodebuild build-for-testing -enableCodeCoverage YES -xcconfig ' + configFilePath + ' ' + projectParameter + ' -configuration '+ configuration +
           ' -scheme ' + scheme + ' -sdk ' + sdk + ' -derivedDataPath ' + derivedDataPath + ' -destination \"' + destination + '\"';
       const result = await exec.exec(buildCommand, null, null);
 
@@ -127,7 +127,7 @@ async function run() {
           }
       }
       //run tests
-      let testCommand = 'xcodebuild test-without-building -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
+      let testCommand = 'xcodebuild test-without-building -enableCodeCoverage YES -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
       await exec.exec(testCommand, null, null );
 
       //build command settings
@@ -247,7 +247,6 @@ function createXCConfigFile(path) {
  // https://help.apple.com/xcode/#/dev745c5c974
  
  DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
- CLANG_COVERAGE_MAPPING = YES
 ` +
 'FRAMEWORK_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n' +
 'OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n' +
