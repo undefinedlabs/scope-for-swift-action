@@ -288,7 +288,7 @@ async function insertEnvVariables( file, target, dsn) {
     await insertEnvVariable('CI_JOB_URL',process.env['CI_JOB_URL'] || '', file, target );
     await insertEnvVariable('SCOPE_SET_GLOBAL_TRACER', "YES", file, target );
     const instrumentHTTP = core.getInput('instrumentHttpPayloads');
-    if ( instrumentHTTP === true ){
+    if ( instrumentHTTP === 'true' ){
         await insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
     }
 
