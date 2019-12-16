@@ -18,7 +18,13 @@ inputs:
     description: 'Sdk used for building, by default: \"iphonesimulator\" will be used'
     required: false
   destination:
-    description: 'destination for testing, by default: \"platform=iOS Simulator,name=iPhone 11\"'
+    description: 'Destination for testing, by default: \"platform=iOS Simulator,name=iPhone 11\"'
+    required: false
+  configuration:
+    description: 'Configuration for testing, by default: \"Debug\"'
+    required: false
+  instrumentHttpPayloads:
+    description: 'Whether Scope should instrument HTTP payloads, false by default'
     required: false
 runs:
   using: 'node12'
