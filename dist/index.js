@@ -65,10 +65,7 @@ async function run() {
       const dsn = core.getInput('dsn') || process.env[SCOPE_DSN];
       const sdk = core.getInput('sdk') || 'iphonesimulator';
       const destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
-
-        if (!dsn) {
-            core.error('Cannot find the SCOPE_DSN secret');
-        }
+      const configuration = core.getInput('configuration') || 'Debug';
 
         //Read project
       const workspace  = await getWorkspace();
@@ -83,7 +80,7 @@ async function run() {
           console.log(`Project selected: ${xcodeproj}`);
           projectParameter = '-project ' + xcodeproj;
       } else if (fs.existsSync('Package.swift')) {
-          isSPM = true
+          isSPM = true;
           xcodeproj = await generateProjectFromSPM();
           projectParameter = '-project ' + xcodeproj;
       }
@@ -109,7 +106,7 @@ async function run() {
       await downloadLatestScope();
 
       //build for testing
-      let buildCommand = 'xcodebuild build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
+      let buildCommand = 'xcodebuild build-for-testing -enableCodeCoverage YES -xcconfig ' + configFilePath + ' ' + projectParameter + ' -configuration '+ configuration +
           ' -scheme ' + scheme + ' -sdk ' + sdk + ' -derivedDataPath ' + derivedDataPath + ' -destination \"' + destination + '\"';
       const result = await exec.exec(buildCommand, null, null);
 
@@ -130,12 +127,30 @@ async function run() {
           }
       }
       //run tests
-      let testCommand = 'xcodebuild test-without-building -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
+      let testCommand = 'xcodebuild test-without-building -enableCodeCoverage YES -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
       await exec.exec(testCommand, null, null );
 
-        if (!dsn) {
-            core.warning('SCOPE_DSN not found in secrets, results wont be uploaded to Scope app');
-        }
+      //build command settings
+      let buildCommandSettings = 'xcodebuild -showBuildSettings -json -configuration '+ configuration + ' build-for-testing -xcconfig ' + configFilePath + ' ' + projectParameter +
+          ' -scheme ' + scheme + ' -sdk ' + sdk + ' -derivedDataPath ' + derivedDataPath + ' -destination \"' + destination + '\"';
+      let auxOutput = '';
+      const options = {};
+      options.listeners = {
+          stdout: (data) => {
+              auxOutput += data.toString();
+          }
+      };
+      await exec.exec(buildCommandSettings, null, options);
+      const settingsArray = JSON.parse(auxOutput);
+      for( const settings of settingsArray ) {
+          if (settings.buildSettings['PACKAGE_TYPE'] !== 'com.apple.package-type.bundle.unit-test') {
+              await runScopeCoverageWithSettings(settings.buildSettings, dsn);
+          }
+      }
+
+      if (!dsn) {
+          core.warning('SCOPE_DSN not found in secrets, results wont be uploaded to Scope app');
+      }
     } catch (error) {
       core.setFailed(error.message);
     }
@@ -179,7 +194,7 @@ async function generateProjectFromSPM() {
         fs.renameSync('Package.swift', 'Package_orig.swift')
         fs.renameSync('Package_iOS.swift', 'Package.swift')
     }
-    let generateProjectCommand = 'swift package generate-xcodeproj --enable-code-coverage';
+    let generateProjectCommand = 'swift package generate-xcodeproj';
     const result = await exec.exec(generateProjectCommand, null, null);
     console.log(`SPM package`);
     xcodeproj = await getXCodeProj();
@@ -203,7 +218,7 @@ async function getScheme(workspace, xcodeproj) {
                 myOutput += data.toString();
             }
         };
-        await exec.exec(command, null, options)
+        await exec.exec(command, null, options);
         const info = JSON.parse(myOutput);
         const aux = info.workspace || info.project;
         const schemes = aux.schemes;
@@ -235,16 +250,16 @@ function createXCConfigFile(path) {
 ` +
 'FRAMEWORK_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n' +
 'OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n' +
-'LD_RUNPATH_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n'
+'LD_RUNPATH_SEARCH_PATHS = $(inherited) '+ scopeDir + '/scopeAgent\n';
 
     fs.writeFileSync(path, configText,null);
 }
 
 async function downloadLatestScope() {
     const versionsUrl = 'https://releases.undefinedlabs.com/scope/agents/ios/ScopeAgent.json';
-    const jsonResponse = await fetch(versionsUrl)
-    const versions = await jsonResponse.json()
-    let currentVersion = '0.0.1'
+    const jsonResponse = await fetch(versionsUrl);
+    const versions = await jsonResponse.json();
+    let currentVersion = '0.0.1';
     Object.keys(versions).forEach(function (name) {
         if( semver.gt(name,currentVersion) ) {
             currentVersion = name
@@ -294,8 +309,21 @@ async function getXCTestRun() {
             testRun = myOutput.split("\n").find(function(file) { return file.match(/\.xctestrun$/); });
         }
     };
-    await exec.exec('ls ' + xctestDir, null, options)
+    await exec.exec('ls ' + xctestDir, null, options);
     return xctestDir + testRun
+}
+
+async function runScopeCoverageWithSettings(buildSettings, dsn) {
+    let runScriptCommand = 'sh -c ' + scopeDir + '/scopeAgent/ScopeAgent.framework/scope-coverage';
+    await exec.exec(runScriptCommand, null, {
+        env: {
+            ...buildSettings,
+            SCOPE_DSN: dsn,
+            TMPDIR: os.tmpdir() + '/',
+            SCOPE_COVERAGE_DEBUG: 'true',
+        },
+        ignoreReturnCode: true
+    })
 }
 
 async function insertEnvVariables( file, target, dsn) {
@@ -306,8 +334,12 @@ async function insertEnvVariables( file, target, dsn) {
     await insertEnvVariable('GITLAB_CI',process.env['GITLAB_CI'] || '', file, target );
     await insertEnvVariable('CI_JOB_ID',process.env['CI_JOB_ID'] || '', file, target );
     await insertEnvVariable('CI_JOB_URL',process.env['CI_JOB_URL'] || '', file, target );
-    await insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
     await insertEnvVariable('SCOPE_SET_GLOBAL_TRACER', "YES", file, target );
+    const instrumentHTTP = core.getInput('instrumentHttpPayloads');
+    if ( instrumentHTTP === 'true' ){
+        await insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
+    }
+
 }
 
 async function insertEnvVariable( name, value, file, target) {

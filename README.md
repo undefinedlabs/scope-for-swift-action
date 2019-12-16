@@ -34,9 +34,10 @@ These are the optional parameters of the action:
 workspace: .xcworkspace file, if not set workspace will be autoselected
 project:  .xcodeproj file, if not set project will be autoselected
 scheme: Scheme to test, if not set scheme will be autoselected
-sdk:  Sdk used for building, by default: \"iphonesimulator\" will be used
+configuration: configuration for testing, by default: 'Debug'
+sdk:  Sdk used for building, by default: 'iphonesimulator' will be used
 destination: destination for testing, by default: 'platform=iOS Simulator,name=iPhone 11'
-
+instrumentHttpPayloads:  Whether Scope should instrument HTTP payloads, 'false' by default
 ```
 
 <!--For SPM packages, in the case of multiplatform projects, executable targets are not supported in iOS. Desabling targets per platform is still not supported in SPM, so in the meantime you can put a Package_iOS.swift beside de original Package.swift and the action will use this for building-->
