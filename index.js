@@ -273,6 +273,7 @@ async function runScopeCoverageWithSettings(buildSettings, dsn) {
             ...buildSettings,
             SCOPE_DSN: dsn,
             TMPDIR: os.tmpdir() + '/',
+            SCOPE_COVERAGE_DEBUG: 'true',
         },
         ignoreReturnCode: true
     })

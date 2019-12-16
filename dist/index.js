@@ -67,7 +67,6 @@ async function run() {
       const destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
       const configuration = core.getInput('configuration') || 'Debug';
 
-
         //Read project
       const workspace  = await getWorkspace();
       let xcodeproj = await getXCodeProj();
@@ -322,6 +321,7 @@ async function runScopeCoverageWithSettings(buildSettings, dsn) {
             ...buildSettings,
             SCOPE_DSN: dsn,
             TMPDIR: os.tmpdir() + '/',
+            SCOPE_COVERAGE_DEBUG: 'true',
         },
         ignoreReturnCode: true
     })
@@ -335,8 +335,12 @@ async function insertEnvVariables( file, target, dsn) {
     await insertEnvVariable('GITLAB_CI',process.env['GITLAB_CI'] || '', file, target );
     await insertEnvVariable('CI_JOB_ID',process.env['CI_JOB_ID'] || '', file, target );
     await insertEnvVariable('CI_JOB_URL',process.env['CI_JOB_URL'] || '', file, target );
-    await insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
     await insertEnvVariable('SCOPE_SET_GLOBAL_TRACER', "YES", file, target );
+    const instrumentHTTP = core.getInput('instrumentHttpPayloads');
+    if ( instrumentHTTP === true ){
+        await insertEnvVariable('SCOPE_INSTRUMENTATION_HTTP_PAYLOADS', "YES", file, target );
+    }
+
 }
 
 async function insertEnvVariable( name, value, file, target) {
