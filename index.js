@@ -83,19 +83,19 @@ async function run() {
       const testTargets = JSON.parse(jsonString);
 
       for( const target of Object.keys(testTargets) ) {
-          if( target.charAt(0) !== '_' ) {
-                if( target['TestingEnvironmentVariables']) {
-              await insertEnvVariables(testRun, target, dsn)
-                } else if ( target === 'TestConfigurations') {
-                    let configurationNumber = 0;
-                    for( const configuration of testTargets['TestConfigurations'] ) {
-                        let testNumber = 0;
-                        for( const test of configuration['TestTargets'] ) {
-                            await insertEnvVariables(testRun, target + '.' + configurationNumber + '.' + 'TestTargets' + '.' + testNumber, dsn)
-                        }
-                    }
-                }
+        if( target.charAt(0) !== '_' ) {
+          if( testTargets[target].TestingEnvironmentVariables ) {
+            await insertEnvVariables(testRun, target, dsn)
+          } else if ( target === 'TestConfigurations') {
+              let configurationNumber = 0;
+              for (const configuration of testTargets['TestConfigurations']) {
+                  let testNumber = 0;
+                  for (const test of configuration['TestTargets']) {
+                      await insertEnvVariables(testRun, target + '.' + configurationNumber + '.' + 'TestTargets' + '.' + testNumber, dsn)
+                  }
+              }
           }
+        }
       }
       //run tests
       let testCommand = 'xcodebuild test-without-building -enableCodeCoverage YES -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
@@ -120,7 +120,7 @@ async function run() {
       const settingsArray = JSON.parse(auxOutput);
       for( const settings of settingsArray ) {
           if (settings.buildSettings['PACKAGE_TYPE'] !== 'com.apple.package-type.bundle.unit-test') {
-              await runScopeCoverageWithSettings(settings.buildSettings, dsn);
+              await runScopeCoverageWithSettings(settings.buildSettings, dsn, isSPM);
           }
       }
 
@@ -131,6 +131,7 @@ async function run() {
       if (testError) {
           core.setFailed(testError.message);
       }
+
     } catch (error) {
       core.setFailed(error.message);
     }
@@ -296,13 +297,14 @@ async function getXCTestRuns() {
     return testRuns
 }
 
-async function runScopeCoverageWithSettings(buildSettings, dsn) {
+async function runScopeCoverageWithSettings(buildSettings, dsn, isSPM) {
     let runScriptCommand = 'sh -c ' + scopeDir + '/scopeAgent/ScopeAgent.framework/scope-coverage';
     await exec.exec(runScriptCommand, null, {
         env: {
             ...buildSettings,
             SCOPE_DSN: dsn,
             TMPDIR: os.tmpdir() + '/',
+            PRODUCT_BUNDLE_IDENTIFIER: isSPM ? '' : buildSettings.PRODUCT_BUNDLE_IDENTIFIER
         },
         ignoreReturnCode: true
     })
