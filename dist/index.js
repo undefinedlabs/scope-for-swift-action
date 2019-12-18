@@ -52,6 +52,8 @@ const fetch = __webpack_require__(735);
 const fs = __webpack_require__(747);
 const semver = __webpack_require__(105);
 const os = __webpack_require__(87);
+const path = __webpack_require__(622);
+
 
 const temp = os.tmpdir();
 const SCOPE_DSN = 'SCOPE_DSN';
@@ -100,7 +102,10 @@ async function run() {
       if (!fs.existsSync(scopeDir)){
           fs.mkdirSync(scopeDir);
       }
-      createXCConfigFile(configFilePath)
+      createXCConfigFile(configFilePath);
+
+      //enableCodeCoverage in xcodebuild doesn't work with test plans, configure them before
+      configureTestPlansForCoverage(projectParameter, scheme)
 
       //download scope
       await downloadLatestScope();
@@ -112,27 +117,41 @@ async function run() {
 
       uploadSymbols(projectParameter, scheme, dsn);
 
+      //Fol all testruns that are configured
+      let testRuns = await getXCTestRuns();
+      let testError;
+
+      for( const testRun of testRuns ) {
       //modify xctestrun with Scope variables
-      let testRun = await getXCTestRun();
+
       let plutilExportCommand = 'plutil -convert json -o ' + testrunJson + ' ' + testRun;
       await exec.exec(plutilExportCommand, null, null );
 
       let jsonString = fs.readFileSync(testrunJson, "utf8");
       const testTargets = JSON.parse(jsonString);
 
-
       for( const target of Object.keys(testTargets) ) {
           if( target.charAt(0) !== '_' ) {
+                if( target['TestingEnvironmentVariables']) {
               await insertEnvVariables(testRun, target, dsn)
+                } else if ( target === 'TestConfigurations') {
+                    let configurationNumber = 0;
+                    for( const configuration of testTargets['TestConfigurations'] ) {
+                        let testNumber = 0;
+                        for( const test of configuration['TestTargets'] ) {
+                            await insertEnvVariables(testRun, target + '.' + configurationNumber + '.' + 'TestTargets' + '.' + testNumber, dsn)
+                        }
+                    }
+                }
           }
       }
       //run tests
       let testCommand = 'xcodebuild test-without-building -enableCodeCoverage YES -xctestrun ' + testRun + ' -destination \"' + destination + '\"';
-      let testError;
       try {
           await exec.exec(testCommand, null, null);
       } catch (error) {
           testError = error.message
+      }
       }
 
       //build command settings
@@ -200,7 +219,7 @@ async function getXCodeProj() {
 
 async function generateProjectFromSPM() {
     if( fs.existsSync('Package_iOS.swift')) {
-        fs.renameSync('Package.swift', 'Package_orig.swift')
+        fs.renameSync('Package.swift', 'Package_orig.swift');
         fs.renameSync('Package_iOS.swift', 'Package.swift')
     }
     let generateProjectCommand = 'swift package generate-xcodeproj';
@@ -308,18 +327,21 @@ function uploadSymbols(projectParameter, scheme, dsn) {
     })
 }
 
-async function getXCTestRun() {
+async function getXCTestRuns() {
     let myOutput = '';
-    let testRun = '';
+    let testRuns = [''];
     const options = {};
     options.listeners = {
         stdout: (data) => {
             myOutput += data.toString();
-            testRun = myOutput.split("\n").find(function(file) { return file.match(/\.xctestrun$/); });
+            testRuns = myOutput.split("\n").filter(function(file) { return file.match(/\.xctestrun$/); });
         }
     };
     await exec.exec('ls ' + xctestDir, null, options);
-    return xctestDir + testRun
+    testRuns.forEach(function(part, index, theArray) {
+        theArray[index] = xctestDir + part;
+    });
+    return testRuns
 }
 
 async function runScopeCoverageWithSettings(buildSettings, dsn) {
@@ -357,6 +379,55 @@ async function insertEnvVariable( name, value, file, target) {
     }
 }
 
+async function configureTestPlansForCoverage( projectParameter, scheme ) {
+    //Check if project is configured with test plans
+    let showTestPlansCommand = 'xcodebuild -showTestPlans -json ' + projectParameter + ' -scheme ' + scheme;
+    let auxOutput = '';
+    const options = {};
+    options.listeners = {
+        stdout: (data) => {
+            auxOutput += data.toString();
+        }
+    };
+    await exec.exec(showTestPlansCommand, null, options);
+    const showTestPlans = JSON.parse(auxOutput);
+    if( showTestPlans.testPlans === null ) {
+        return;
+    }
+
+    //If uses testplan configure to use code coverage
+    let file_list = recFindByExt('.','xctestplan');
+    for(let testPlanFile of file_list ){
+        let rawdata = fs.readFileSync(testPlanFile);
+        let testPlan = JSON.parse(rawdata);
+        testPlan.defaultOptions.codeCoverage = true;
+        fs.writeFileSync(testPlanFile, JSON.stringify(testPlan));
+    }
+}
+
+function recFindByExt(base,ext,files,result)
+{
+    files = files || fs.readdirSync(base);
+    result = result || [];
+
+    files.forEach(
+        function (file) {
+            var newbase = path.join(base,file);
+            if ( fs.statSync(newbase).isDirectory() )
+            {
+                result = recFindByExt(newbase,ext,fs.readdirSync(newbase),result)
+            }
+            else
+            {
+                if ( file.substr(-1*(ext.length+1)) === '.' + ext )
+                {
+                    result.push(newbase)
+                }
+            }
+        }
+    );
+    return result
+}
 
 run();
 
