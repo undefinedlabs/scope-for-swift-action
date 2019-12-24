@@ -402,7 +402,7 @@ async function configureTestPlansForCoverage( projectParameter, scheme ) {
     }
 
     //If uses testplan configure to use code coverage
-    let file_list = recFindByExt('.','xctestplan');
+/*    let file_list = recFindByExt('.','xctestplan');
     for(let testPlanFile of file_list ){
         let rawdata = fs.readFileSync(testPlanFile);
         console.log(' Testplan Original: ' + rawdata)
@@ -412,7 +412,7 @@ async function configureTestPlansForCoverage( projectParameter, scheme ) {
         fs.writeFileSync(testPlanFile, JSON.stringify(testPlan));
         let rawdata2 = fs.readFileSync(testPlanFile);
         console.log(' Testplan After Change: ' + rawdata2);
-    }
+    }*/
 }
 
 function recFindByExt(base,ext,files,result)
