@@ -1,5 +1,6 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
+const io = require('@actions/io');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const semver = require('semver');
@@ -356,12 +357,10 @@ async function configureTestPlansForCoverage( projectParameter, scheme ) {
     let file_list = recFindByExt('.','xctestplan');
     for(let testPlanFile of file_list ){
         let rawdata = fs.readFileSync(testPlanFile);
-        console.log(' Testplan Original: ' + rawdata)
         let testPlan = JSON.parse(rawdata);
         testPlan.defaultOptions.codeCoverage = true;
+        await io.rmRF(testPlanFile);
         fs.writeFileSync(testPlanFile, JSON.stringify(testPlan));
-        let rawdata2 = fs.readFileSync(testPlanFile);
-        console.log(' Testplan After Change: ' + rawdata2);
     }
 }
 
