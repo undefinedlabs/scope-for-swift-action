@@ -20,6 +20,7 @@ async function run() {
       const sdk = core.getInput('sdk') || 'iphonesimulator';
       const destination = core.getInput('destination') || 'platform=iOS Simulator,name=iPhone 11';
       const configuration = core.getInput('configuration') || 'Debug';
+      const agentVersion = core.getInput('agentVersion');
 
         //Read project
       const workspace  = await getWorkspace();
@@ -57,10 +58,10 @@ async function run() {
       createXCConfigFile(configFilePath);
 
       //enableCodeCoverage in xcodebuild doesn't work with test plans, configure them before
-      configureTestPlansForCoverage(projectParameter, scheme)
+      configureTestPlansForCoverage(projectParameter, scheme);
 
       //download scope
-      await downloadLatestScope();
+     await downloadLatestScope(agentVersion);
 
       //build for testing
       let buildCommand = 'xcodebuild build-for-testing -enableCodeCoverage YES -xcconfig ' + configFilePath + ' ' + projectParameter + ' -configuration '+ configuration +
@@ -236,7 +237,7 @@ function createXCConfigFile(path) {
     fs.writeFileSync(path, configText,null);
 }
 
-async function downloadLatestScope() {
+async function downloadLatestScope(agentVersion) {
     const versionsUrl = 'https://releases.undefinedlabs.com/scope/agents/ios/ScopeAgent.json';
     const jsonResponse = await fetch(versionsUrl);
     const versions = await jsonResponse.json();
@@ -246,7 +247,7 @@ async function downloadLatestScope() {
             currentVersion = name
         }
     });
-    const scopeURL = versions[currentVersion];
+    const scopeURL = versions[agentVersion] || versions[currentVersion];
     const scopePath = scopeDir + '/scopeAgent.zip';
     await downloadFile(scopeURL, scopePath);
 

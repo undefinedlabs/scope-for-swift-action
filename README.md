@@ -38,6 +38,7 @@ configuration: configuration for testing, by default: 'Debug'
 sdk:  Sdk used for building, by default: 'iphonesimulator' will be used
 destination: destination for testing, by default: 'platform=iOS Simulator,name=iPhone 11'
 instrumentHttpPayloads:  Whether Scope should instrument HTTP payloads, 'false' by default
+agentVersion: Version of the Scope agent to use for testing, by default the latest stable 
 ```
 
 <!--For SPM packages, in the case of multiplatform projects, executable targets are not supported in iOS. Desabling targets per platform is still not supported in SPM, so in the meantime you can put a Package_iOS.swift beside de original Package.swift and the action will use this for building-->
