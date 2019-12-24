@@ -243,7 +243,7 @@ async function downloadLatestScope(agentVersion) {
     const versions = await jsonResponse.json();
     let currentVersion = '0.0.1';
     Object.keys(versions).forEach(function (name) {
-        if( semver.gt(name,currentVersion) ) {
+        if( semver.gt(name,currentVersion) && !semver.prerelease(name) ) {
             currentVersion = name
         }
     });
