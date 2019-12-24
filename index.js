@@ -356,12 +356,12 @@ async function configureTestPlansForCoverage( projectParameter, scheme ) {
     let file_list = recFindByExt('.','xctestplan');
     for(let testPlanFile of file_list ){
         let rawdata = fs.readFileSync(testPlanFile);
+        console.log(' Testplan Original: ' + rawdata)
         let testPlan = JSON.parse(rawdata);
         testPlan.defaultOptions.codeCoverage = true;
-        fs.writeFile(testPlanFile, JSON.stringify(testPlan), (err) => {
-            if (err) throw err;
-            console.log('The file has been saved!');
-        });
+        fs.writeFileSync(testPlanFile, JSON.stringify(testPlan));
+        let rawdata2 = fs.readFileSync(testPlanFile);
+        console.log(' Testplan After Change: ' + rawdata2);
     }
 }
 
