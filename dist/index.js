@@ -297,6 +297,7 @@ async function downloadLatestScope(agentVersion) {
     });
     const scopeURL = versions[agentVersion] || versions[currentVersion];
     const scopePath = scopeDir + '/scopeAgent.zip';
+    console.log(`Scope agent downloading: ${scopeURL}`);
     await downloadFile(scopeURL, scopePath);
 
     const extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent';
