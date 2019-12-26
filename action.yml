@@ -26,6 +26,9 @@ inputs:
   instrumentHttpPayloads:
     description: 'Whether Scope should instrument HTTP payloads, false by default'
     required: false
+  agentVersion:
+    description: 'Version of the Scope agent to use for testing, by default the latest stabl'
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'

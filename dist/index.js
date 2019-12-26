@@ -95,8 +95,10 @@ async function run() {
       const scheme = await getScheme(workspace, xcodeproj);
       console.log(`Scheme selected: ${scheme}`);
 
-      //copy configfile
+      //enableCodeCoverage in xcodebuild doesn't work with test plans, configure them before
+      configureTestPlansForCoverage(projectParameter, scheme);
 
+      //copy configfile
       const configfileName = 'scopeConfig.xcconfig';
 
       const configFilePath = scopeDir + '/' + configfileName;
@@ -106,8 +108,6 @@ async function run() {
       }
       createXCConfigFile(configFilePath);
 
-      //enableCodeCoverage in xcodebuild doesn't work with test plans, configure them before
-      configureTestPlansForCoverage(projectParameter, scheme);
 
       //download scope
      await downloadLatestScope(agentVersion);
@@ -404,12 +404,15 @@ async function configureTestPlansForCoverage( projectParameter, scheme ) {
     let file_list = recFindByExt('.','xctestplan');
     for(let testPlanFile of file_list ){
         let rawdata = fs.readFileSync(testPlanFile);
+        console.log(`testPlanFile previous: ${rawdata}`);
         let testPlan = JSON.parse(rawdata);
         if( testPlan.defaultOptions.hasOwnProperty('codeCoverage') ){
             delete testPlan.defaultOptions.codeCoverage
         }
         await io.rmRF(testPlanFile);
         fs.writeFileSync(testPlanFile, JSON.stringify(testPlan));
+        let rawdata2 = fs.readFileSync(testPlanFile);
+        console.log(`testPlanFile after: ${rawdata2}`);
     }
 }
 
