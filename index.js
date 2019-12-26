@@ -23,6 +23,7 @@ async function run() {
       const configuration = core.getInput('configuration') || 'Debug';
       const agentVersion = core.getInput('agentVersion');
 
+      //If project uses testplan force use of code coverage
         let file_list = recFindByExt('.','xctestplan');
         for(let testPlanFile of file_list ){
             await deleteLinesContaining(testPlanFile, 'codeCoverage')
@@ -51,9 +52,6 @@ async function run() {
 
       const scheme = await getScheme(workspace, xcodeproj);
       console.log(`Scheme selected: ${scheme}`);
-
-      //enableCodeCoverage in xcodebuild doesn't work with test plans, configure them before
-      configureTestPlansForCoverage(projectParameter, scheme);
 
       //copy configfile
       const configfileName = 'scopeConfig.xcconfig';
@@ -341,29 +339,6 @@ async function insertEnvVariable( name, value, file, target) {
     }
 }
 
-async function configureTestPlansForCoverage( projectParameter, scheme ) {
-    //Check if project is configured with test plans
-    let showTestPlansCommand = 'xcodebuild -showTestPlans -json ' + projectParameter + ' -scheme ' + scheme;
-    let auxOutput = '';
-    const options = {};
-    options.listeners = {
-        stdout: (data) => {
-            auxOutput += data.toString();
-        }
-    };
-    await exec.exec(showTestPlansCommand, null, options);
-    const showTestPlans = JSON.parse(auxOutput);
-    if( showTestPlans.testPlans === null ) {
-        return;
-    }
-
-    //If uses testplan configure to use code coverage
-    let file_list = recFindByExt('.','xctestplan');
-    for(let testPlanFile of file_list ){
-        await deleteLinesContaining(testPlanFile, 'codeCoverage')
-    }
-}
-
 function recFindByExt(base,ext,files,result)
 {
     files = files || fs.readdirSync(base);
@@ -389,7 +364,7 @@ function recFindByExt(base,ext,files,result)
 }
 
 async function deleteLinesContaining( file, match ) {
-    let newName = file + '_old'
+    let newName = file + '_old';
     await io.mv(file, newName );
     fs.readFile(newName, {encoding: 'utf-8'}, function(err, data) {
         if (err) throw error;
