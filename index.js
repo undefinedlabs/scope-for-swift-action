@@ -384,7 +384,9 @@ function recFindByExt(base,ext,files,result)
 }
 
 async function deleteLinesContaining( file, match ) {
-    fs.readFile(file, {encoding: 'utf-8'}, function(err, data) {
+    let newName = file + '_old'
+    await io.mv(file, newName );
+    fs.readFile(newName, {encoding: 'utf-8'}, function(err, data) {
         if (err) throw error;
 
         let dataArray = data.split('\n'); // convert file data in an array
