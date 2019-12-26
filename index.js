@@ -23,6 +23,11 @@ async function run() {
       const configuration = core.getInput('configuration') || 'Debug';
       const agentVersion = core.getInput('agentVersion');
 
+        let file_list = recFindByExt('.','xctestplan');
+        for(let testPlanFile of file_list ){
+            await deleteLinesContaining(testPlanFile, 'codeCoverage')
+        }
+        
         //Read project
       const workspace  = await getWorkspace();
       let xcodeproj = await getXCodeProj();
