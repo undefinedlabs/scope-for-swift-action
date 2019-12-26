@@ -353,17 +353,16 @@ async function configureTestPlansForCoverage( projectParameter, scheme ) {
     }
 
     //If uses testplan configure to use code coverage
-/*    let file_list = recFindByExt('.','xctestplan');
+    let file_list = recFindByExt('.','xctestplan');
     for(let testPlanFile of file_list ){
         let rawdata = fs.readFileSync(testPlanFile);
-        console.log(' Testplan Original: ' + rawdata)
         let testPlan = JSON.parse(rawdata);
-        testPlan.defaultOptions.codeCoverage = true;
+        if( testPlan.defaultOptions.hasOwnProperty('codeCoverage') ){
+            delete testPlan.defaultOptions.codeCoverage
+        }
         await io.rmRF(testPlanFile);
         fs.writeFileSync(testPlanFile, JSON.stringify(testPlan));
-        let rawdata2 = fs.readFileSync(testPlanFile);
-        console.log(' Testplan After Change: ' + rawdata2);
-    }*/
+    }
 }
 
 function recFindByExt(base,ext,files,result)
