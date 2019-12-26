@@ -307,8 +307,7 @@ async function runScopeCoverageWithSettings(buildSettings, dsn, isSPM) {
             ...buildSettings,
             SCOPE_DSN: dsn,
             TMPDIR: os.tmpdir() + '/',
-            PRODUCT_BUNDLE_IDENTIFIER: isSPM ? '' : buildSettings.PRODUCT_BUNDLE_IDENTIFIER,
-            SCOPE_COVERAGE_DEBUG: 'YES'
+            PRODUCT_BUNDLE_IDENTIFIER: isSPM ? '' : buildSettings.PRODUCT_BUNDLE_IDENTIFIER
         },
         ignoreReturnCode: true
     })
