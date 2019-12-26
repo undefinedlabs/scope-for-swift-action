@@ -1,5 +1,6 @@
 const core = require('@actions/core');
 const exec = require('@actions/exec');
+const io = require('@actions/io');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const semver = require('semver');
@@ -22,6 +23,12 @@ async function run() {
       const configuration = core.getInput('configuration') || 'Debug';
       const agentVersion = core.getInput('agentVersion');
 
+      //If project uses testplan force use of code coverage
+        let file_list = recFindByExt('.','xctestplan');
+        for(let testPlanFile of file_list ){
+            await deleteLinesContaining(testPlanFile, 'codeCoverage')
+        }
+        
         //Read project
       const workspace  = await getWorkspace();
       let xcodeproj = await getXCodeProj();
@@ -47,7 +54,6 @@ async function run() {
       console.log(`Scheme selected: ${scheme}`);
 
       //copy configfile
-
       const configfileName = 'scopeConfig.xcconfig';
 
       const configFilePath = scopeDir + '/' + configfileName;
@@ -57,8 +63,6 @@ async function run() {
       }
       createXCConfigFile(configFilePath);
 
-      //enableCodeCoverage in xcodebuild doesn't work with test plans, configure them before
-      configureTestPlansForCoverage(projectParameter, scheme);
 
       //download scope
      await downloadLatestScope(agentVersion);
@@ -249,6 +253,7 @@ async function downloadLatestScope(agentVersion) {
     });
     const scopeURL = versions[agentVersion] || versions[currentVersion];
     const scopePath = scopeDir + '/scopeAgent.zip';
+    console.log(`Scope agent downloading: ${scopeURL}`);
     await downloadFile(scopeURL, scopePath);
 
     const extractCommand = 'ditto -x -k ' + scopePath + ' ' + scopeDir + '/scopeAgent';
@@ -334,32 +339,6 @@ async function insertEnvVariable( name, value, file, target) {
     }
 }
 
-async function configureTestPlansForCoverage( projectParameter, scheme ) {
-    //Check if project is configured with test plans
-    let showTestPlansCommand = 'xcodebuild -showTestPlans -json ' + projectParameter + ' -scheme ' + scheme;
-    let auxOutput = '';
-    const options = {};
-    options.listeners = {
-        stdout: (data) => {
-            auxOutput += data.toString();
-        }
-    };
-    await exec.exec(showTestPlansCommand, null, options);
-    const showTestPlans = JSON.parse(auxOutput);
-    if( showTestPlans.testPlans === null ) {
-        return;
-    }
-
-    //If uses testplan configure to use code coverage
-    let file_list = recFindByExt('.','xctestplan');
-    for(let testPlanFile of file_list ){
-        let rawdata = fs.readFileSync(testPlanFile);
-        let testPlan = JSON.parse(rawdata);
-        testPlan.defaultOptions.codeCoverage = true;
-        fs.writeFileSync(testPlanFile, JSON.stringify(testPlan));
-    }
-}
-
 function recFindByExt(base,ext,files,result)
 {
     files = files || fs.readdirSync(base);
@@ -384,4 +363,34 @@ function recFindByExt(base,ext,files,result)
     return result
 }
 
+async function deleteLinesContaining( file, match ) {
+    let newName = file + '_old';
+    await io.mv(file, newName );
+    fs.readFile(newName, {encoding: 'utf-8'}, function(err, data) {
+        if (err) throw error;
+
+        let dataArray = data.split('\n'); // convert file data in an array
+        const searchKeyword = match; // we are looking for a line, contains, key word 'user1' in the file
+        let lastIndex = -1; // let say, we have not found the keyword
+
+        for (let index=0; index<dataArray.length; index++) {
+            if (dataArray[index].includes(searchKeyword)) { // check if a line contains the 'user1' keyword
+                lastIndex = index; // found a line includes a 'user1' keyword
+                break;
+            }
+        }
+
+        dataArray.splice(lastIndex, 1); // remove the keyword 'user1' from the data Array
+
+        // UPDATE FILE WITH NEW DATA
+        // IN CASE YOU WANT TO UPDATE THE CONTENT IN YOUR FILE
+        // THIS WILL REMOVE THE LINE CONTAINS 'user1' IN YOUR shuffle.txt FILE
+        const updatedData = dataArray.join('\n');
+        fs.writeFile(file, updatedData, (err) => {
+            if (err) throw err;
+            console.log ('Successfully updated the file data');
+        });
+
+    });
+}
 run();
