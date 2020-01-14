@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write '*.{js,json,yml,md}'",
     "build": "ncc build index.js"
   },
   "repository": {
@@ -25,5 +26,21 @@
     "node-fetch": "^2.6.0",
     "semver": "^6.3.0",
     "shelljs": "^0.8.3"
+  },
+  "devDependencies": {
+    "husky": "^4.0.7",
+    "lint-staged": "^9.5.0",
+    "prettier": "^1.19.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,json,yml,md}": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }
