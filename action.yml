@@ -1,18 +1,18 @@
-name: 'Scope for iOS'
-author: 'Undefined Labs'
-description: 'Automatically instruments and runs your tests using the Scope iOS agent'
+name: "Scope for iOS"
+author: "Undefined Labs"
+description: "Automatically instruments and runs your tests using the Scope iOS agent"
 inputs:
   dsn:
-    description: 'Scope DSN'
+    description: "Scope DSN"
     required: true
   workspace:
-    description: '.xcworkspace file, if not set workspace will be autoselected'
+    description: ".xcworkspace file, if not set workspace will be autoselected"
     required: false
   project:
-    description: '.xcodeproj file, if not set project will be autoselected'
+    description: ".xcodeproj file, if not set project will be autoselected"
     required: false
   scheme:
-    description: 'Scheme to test, if not set scheme will be autoselected'
+    description: "Scheme to test, if not set scheme will be autoselected"
     required: false
   sdk:
     description: 'Sdk used for building, by default: \"iphonesimulator\" will be used'
@@ -24,14 +24,14 @@ inputs:
     description: 'Configuration for testing, by default: \"Debug\"'
     required: false
   instrumentHttpPayloads:
-    description: 'Whether Scope should instrument HTTP payloads, false by default'
+    description: "Whether Scope should instrument HTTP payloads, false by default"
     required: false
   agentVersion:
-    description: 'Version of the Scope agent to use for testing, by default the latest stabl'
+    description: "Version of the Scope agent to use for testing, by default the latest stable"
     required: false
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: "node12"
+  main: "dist/index.js"
 branding:
-  icon: 'check-square'
-  color: 'purple'
+  icon: "check-square"
+  color: "purple"
