@@ -287,11 +287,11 @@ function createXCConfigFile(path) {
 ` +
     "FRAMEWORK_SEARCH_PATHS = $(inherited) " +
     scopeDir +
-    "/scopeAgent\n" +
+    "/scopeAgent/ios\n" +
     "OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n" +
     "LD_RUNPATH_SEARCH_PATHS = $(inherited) " +
     scopeDir +
-    "/scopeAgent\n";
+    "/scopeAgent/ios\n";
 
   fs.writeFileSync(path, configText, null);
 }
@@ -333,7 +333,7 @@ const downloadFile = async (url, path) => {
 
 function uploadSymbols(projectParameter, scheme, dsn) {
   let runScriptCommand =
-    "sh -c " + scopeDir + "/scopeAgent/ScopeAgent.framework/upload_symbols";
+    "sh -c " + scopeDir + "/scopeAgent/ios/ScopeAgent.framework/upload_symbols";
   exec.exec(runScriptCommand, null, {
     env: {
       ...process.env,
@@ -365,7 +365,7 @@ async function getXCTestRuns() {
 
 async function runScopeCoverageWithSettings(buildSettings, dsn, isSPM) {
   let runScriptCommand =
-    "sh -c " + scopeDir + "/scopeAgent/ScopeAgent.framework/scope-coverage";
+    "sh -c " + scopeDir + "/scopeAgent/ios/ScopeAgent.framework/scope-coverage";
   await exec.exec(runScriptCommand, null, {
     env: {
       ...buildSettings,
