@@ -971,7 +971,8 @@ async function run() {
       envVars[SCOPE_DSN] = dsn;
     }
 
-    const platform = core.getInput("platform") || "ios";
+    let platform = core.getInput("platform") || "ios";
+    platform = platform.toLowerCase();
 
     const scopeFrameworkPath = getPathForPlatform(platform);
     const scopeFrameworkToolsPath = getToolsPathForPlatform(platform);
