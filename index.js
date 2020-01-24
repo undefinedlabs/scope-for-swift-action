@@ -14,19 +14,40 @@ const derivedDataPath = scopeDir + "/derived";
 const xctestDir = derivedDataPath + "/Build/Products/";
 const testrunJson = scopeDir + "/testrun.json";
 
+const scope_ios_path = "/scopeAgent/ios";
+const scope_macos_path = "/scopeAgent/mac";
+const scope_tvos_path = "/scopeAgent/tvos";
+
+let envVars = Object.assign({}, process.env);
+
 async function run() {
   try {
-    const dsn = core.getInput("dsn") || process.env[SCOPE_DSN];
-    const sdk = core.getInput("sdk") || "iphonesimulator";
+    let dsn = core.getInput("dsn") || process.env[SCOPE_DSN];
+    while (dsn.charAt(dsn.length - 1) == "/") {
+      dsn = dsn.substring(0, dsn.length - 1);
+    }
+    if (dsn) {
+      envVars[SCOPE_DSN] = dsn;
+    }
+
+    const platform = core.getInput("platform") || "ios";
+
+    const scopeFrameworkPath = getPathForPlatform(platform);
+    const scopeFrameworkToolsPath = getToolsPathForPlatform(platform);
+
+    const sdk = core.getInput("sdk") || getSDKForPlatform(platform);
     const destination =
-      core.getInput("destination") || "platform=iOS Simulator,name=iPhone 11";
+      core.getInput("destination") || getDestinationForPlatform(platform);
     const configuration = core.getInput("configuration") || "Debug";
     const agentVersion = core.getInput("agentVersion");
+    const codePathEnabled = core.getInput("codePath") === "true";
 
-    //If project uses testplan force use of code coverage
-    let file_list = recFindByExt(".", "xctestplan");
-    for (let testPlanFile of file_list) {
-      await deleteLinesContaining(testPlanFile, "codeCoverage");
+    if (codePathEnabled) {
+      //If project uses testplan force use of code coverage
+      let file_list = recFindByExt(".", "xctestplan");
+      for (let testPlanFile of file_list) {
+        await deleteLinesContaining(testPlanFile, "codeCoverage");
+      }
     }
 
     //Read project
@@ -62,14 +83,20 @@ async function run() {
     if (!fs.existsSync(scopeDir)) {
       fs.mkdirSync(scopeDir);
     }
-    createXCConfigFile(configFilePath);
+    createXCConfigFile(configFilePath, scopeFrameworkPath);
 
     //download scope
     await downloadLatestScope(agentVersion);
 
+    let codeCoverParam = "";
+    if (codePathEnabled) {
+      codeCoverParam = "-enableCodeCoverage YES";
+    }
     //build for testing
     let buildCommand =
-      "xcodebuild build-for-testing -enableCodeCoverage YES -xcconfig " +
+      "xcodebuild build-for-testing " +
+      codeCoverParam +
+      " -xcconfig " +
       configFilePath +
       " " +
       projectParameter +
@@ -86,7 +113,7 @@ async function run() {
       '"';
     const result = await exec.exec(buildCommand, null, null);
 
-    uploadSymbols(projectParameter, scheme, dsn);
+    uploadSymbols(projectParameter, scheme, dsn, scopeFrameworkToolsPath);
 
     //Fol all testruns that are configured
     let testRuns = await getXCTestRuns();
@@ -105,7 +132,7 @@ async function run() {
       for (const target of Object.keys(testTargets)) {
         if (target.charAt(0) !== "_") {
           if (testTargets[target].TestingEnvironmentVariables) {
-            await insertEnvVariables(testRun, target, dsn);
+            await insertEnvVariables(testRun, target);
           } else if (target === "TestConfigurations") {
             let configurationNumber = 0;
             for (const configuration of testTargets["TestConfigurations"]) {
@@ -129,7 +156,9 @@ async function run() {
       }
       //run tests
       let testCommand =
-        "xcodebuild test-without-building -enableCodeCoverage YES -xctestrun " +
+        "xcodebuild test-without-building " +
+        codeCoverParam +
+        " -xctestrun " +
         testRun +
         ' -destination "' +
         destination +
@@ -141,38 +170,44 @@ async function run() {
       }
     }
 
-    //build command settings
-    let buildCommandSettings =
-      "xcodebuild -showBuildSettings -json -configuration " +
-      configuration +
-      " build-for-testing -xcconfig " +
-      configFilePath +
-      " " +
-      projectParameter +
-      " -scheme " +
-      scheme +
-      " -sdk " +
-      sdk +
-      " -derivedDataPath " +
-      derivedDataPath +
-      ' -destination "' +
-      destination +
-      '"';
-    let auxOutput = "";
-    const options = {};
-    options.listeners = {
-      stdout: data => {
-        auxOutput += data.toString();
-      }
-    };
-    await exec.exec(buildCommandSettings, null, options);
-    const settingsArray = JSON.parse(auxOutput);
-    for (const settings of settingsArray) {
-      if (
-        settings.buildSettings["PACKAGE_TYPE"] !==
-        "com.apple.package-type.bundle.unit-test"
-      ) {
-        await runScopeCoverageWithSettings(settings.buildSettings, dsn, isSPM);
+    if (codePathEnabled) {
+      //build command settings
+      let buildCommandSettings =
+        "xcodebuild -showBuildSettings -json -configuration " +
+        configuration +
+        " build-for-testing -xcconfig " +
+        configFilePath +
+        " " +
+        projectParameter +
+        " -scheme " +
+        scheme +
+        " -sdk " +
+        sdk +
+        " -derivedDataPath " +
+        derivedDataPath +
+        ' -destination "' +
+        destination +
+        '"';
+      let auxOutput = "";
+      const options = {};
+      options.listeners = {
+        stdout: data => {
+          auxOutput += data.toString();
+        }
+      };
+      await exec.exec(buildCommandSettings, null, options);
+      const settingsArray = JSON.parse(auxOutput);
+      for (const settings of settingsArray) {
+        if (
+          settings.buildSettings["PACKAGE_TYPE"] !==
+          "com.apple.package-type.bundle.unit-test"
+        ) {
+          await runScopeCoverageWithSettings(
+            settings.buildSettings,
+            isSPM,
+            scopeFrameworkToolsPath
+          );
+        }
       }
     }
 
@@ -187,6 +222,50 @@ async function run() {
     }
   } catch (error) {
     core.setFailed(error.message);
+  }
+}
+
+function getPathForPlatform(platform) {
+  switch (platform) {
+    case "macos":
+      return scope_macos_path;
+    case "tvos":
+      return scope_tvos_path;
+    default:
+      return scope_ios_path;
+  }
+}
+
+function getToolsPathForPlatform(platform) {
+  switch (platform) {
+    case "macos":
+      return scope_macos_path + "/ScopeAgent.framework/Resources/";
+    case "tvos":
+      return scope_tvos_path + "/ScopeAgent.framework/";
+    default:
+      return scope_ios_path + "/ScopeAgent.framework/";
+  }
+}
+
+function getSDKForPlatform(platform) {
+  switch (platform) {
+    case "macos":
+      return "macosx";
+    case "tvos":
+      return "appletvsimulator";
+    default:
+      return "iphonesimulator";
+  }
+}
+
+function getDestinationForPlatform(platform) {
+  switch (platform) {
+    case "macos":
+      return "platform=macOS,arch=x86_64";
+    case "tvos":
+      return "platform=tvOS Simulator,name=Apple TV 4K";
+    default:
+      return "platform=iOS Simulator,name=iPhone 11";
   }
 }
 
@@ -227,10 +306,6 @@ async function getXCodeProj() {
 }
 
 async function generateProjectFromSPM() {
-  if (fs.existsSync("Package_iOS.swift")) {
-    fs.renameSync("Package.swift", "Package_orig.swift");
-    fs.renameSync("Package_iOS.swift", "Package.swift");
-  }
   let generateProjectCommand = "swift package generate-xcodeproj";
   const result = await exec.exec(generateProjectCommand, null, null);
   console.log(`SPM package`);
@@ -277,7 +352,7 @@ function intelligentSelectScheme(schemes, workspacePath) {
   return el || schemes[0];
 }
 
-function createXCConfigFile(path) {
+function createXCConfigFile(path, scopeFrameworkPath) {
   let configText =
     `
  // Configuration settings file format documentation can be found at:
@@ -287,11 +362,13 @@ function createXCConfigFile(path) {
 ` +
     "FRAMEWORK_SEARCH_PATHS = $(inherited) " +
     scopeDir +
-    "/scopeAgent/ios\n" +
+    scopeFrameworkPath +
+    "\n" +
     "OTHER_LDFLAGS =  $(inherited) -ObjC -framework ScopeAgent\n" +
     "LD_RUNPATH_SEARCH_PATHS = $(inherited) " +
     scopeDir +
-    "/scopeAgent/ios\n";
+    scopeFrameworkPath +
+    "\n";
 
   fs.writeFileSync(path, configText, null);
 }
@@ -331,13 +408,12 @@ const downloadFile = async (url, path) => {
   });
 };
 
-function uploadSymbols(projectParameter, scheme, dsn) {
+function uploadSymbols(projectParameter, scheme, dsn, scopeFrameworkToolsPath) {
   let runScriptCommand =
-    "sh -c " + scopeDir + "/scopeAgent/ios/ScopeAgent.framework/upload_symbols";
+    "sh -c " + scopeDir + scopeFrameworkToolsPath + "upload_symbols";
   exec.exec(runScriptCommand, null, {
     env: {
-      ...process.env,
-      SCOPE_DSN: dsn,
+      ...envVars,
       TARGET_BUILD_DIR: xctestDir
     },
     ignoreReturnCode: false
@@ -363,13 +439,17 @@ async function getXCTestRuns() {
   return testRuns;
 }
 
-async function runScopeCoverageWithSettings(buildSettings, dsn, isSPM) {
+async function runScopeCoverageWithSettings(
+  buildSettings,
+  isSPM,
+  scopeFrameworkToolsPath
+) {
   let runScriptCommand =
-    "sh -c " + scopeDir + "/scopeAgent/ios/ScopeAgent.framework/scope-coverage";
+    "sh -c " + scopeDir + scopeFrameworkToolsPath + "scope-coverage";
   await exec.exec(runScriptCommand, null, {
     env: {
       ...buildSettings,
-      SCOPE_DSN: dsn,
+      SCOPE_DSN: envVars[SCOPE_DSN],
       TMPDIR: os.tmpdir() + "/",
       PRODUCT_BUNDLE_IDENTIFIER: isSPM
         ? ""
@@ -379,54 +459,63 @@ async function runScopeCoverageWithSettings(buildSettings, dsn, isSPM) {
   });
 }
 
-async function insertEnvVariables(file, target, dsn) {
-  await insertEnvVariable("SCOPE_DSN", dsn, file, target);
+async function insertEnvVariables(file, target) {
+  await insertEnvVariable(SCOPE_DSN, envVars[SCOPE_DSN], file, target);
   await insertEnvVariable(
     "SCOPE_COMMIT_SHA",
-    process.env["GITHUB_SHA"] || "",
+    envVars["GITHUB_SHA"] || "",
     file,
     target
   );
   await insertEnvVariable(
     "GITHUB_REPOSITORY",
-    process.env["GITHUB_REPOSITORY"] || "",
+    envVars["GITHUB_REPOSITORY"] || "",
     file,
     target
   );
   await insertEnvVariable(
     "SCOPE_SOURCE_ROOT",
-    process.env["GITHUB_WORKSPACE"] || "",
+    envVars["GITHUB_WORKSPACE"] || "",
     file,
     target
   );
   await insertEnvVariable(
     "GITLAB_CI",
-    process.env["GITLAB_CI"] || "",
+    envVars["GITLAB_CI"] || "",
     file,
     target
   );
   await insertEnvVariable(
     "CI_JOB_ID",
-    process.env["CI_JOB_ID"] || "",
+    envVars["CI_JOB_ID"] || "",
     file,
     target
   );
   await insertEnvVariable(
     "CI_JOB_URL",
-    process.env["CI_JOB_URL"] || "",
+    envVars["CI_JOB_URL"] || "",
     file,
     target
   );
-  await insertEnvVariable("SCOPE_SET_GLOBAL_TRACER", "YES", file, target);
-  const instrumentHTTP = core.getInput("instrumentHttpPayloads");
-  if (instrumentHTTP === "true") {
-    await insertEnvVariable(
-      "SCOPE_INSTRUMENTATION_HTTP_PAYLOADS",
-      "YES",
-      file,
-      target
-    );
-  }
+  await insertEnvVariable(
+    "SCOPE_SET_GLOBAL_TRACER",
+    envVars["SCOPE_SET_GLOBAL_TRACER"] || "",
+    file,
+    target
+  );
+  await insertEnvVariable(
+    "SCOPE_INSTRUMENTATION_HTTP_PAYLOADS",
+    envVars["SCOPE_INSTRUMENTATION_HTTP_PAYLOADS"] || "",
+    file,
+    target
+  );
+
+  await insertEnvVariable(
+    "SCOPE_INSTRUMENTATION_HTTP_CLIENT",
+    envVars["SCOPE_INSTRUMENTATION_HTTP_CLIENT"] || "",
+    file,
+    target
+  );
 }
 
 async function insertEnvVariable(name, value, file, target) {
@@ -491,4 +580,5 @@ async function deleteLinesContaining(file, match) {
     });
   });
 }
+
 run();

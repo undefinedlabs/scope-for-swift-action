@@ -1,7 +1,7 @@
 {
-  "name": "scope-for-ios-action",
+  "name": "scope-for-swift-action",
   "version": "1.0.0",
-  "description": "Scope for iOS action https://scope.dev",
+  "description": "Scope for Swift action https://scope.dev",
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -10,15 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/undefinedlabs/scope-for-ios-action.git"
+    "url": "git+https://github.com/undefinedlabs/scope-for-swift-action.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/undefinedlabs/scope-for-ios-action/issues"
+    "url": "https://github.com/undefinedlabs/scope-for-swift-action/issues"
   },
-  "homepage": "https://github.com/undefinedlabs/scope-for-ios-action#readme",
+  "homepage": "https://github.com/undefinedlabs/scope-for-swift-action#readme",
   "dependencies": {
     "@actions/core": "^1.2.0",
     "@actions/exec": "^1.0.1",

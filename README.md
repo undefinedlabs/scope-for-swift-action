@@ -1,8 +1,8 @@
 ![logo](scope_logo.svg)
 
-# Scope for iOS Action
+# Scope for Swift Action
 
-GitHub Action to run your tests automatically instrumented with the [Scope iOS agent](http://home.undefinedlabs.com/goto/ios-agent). It supports Xcode projects as well as Swift Package Manager packages.
+GitHub Action to run your tests automatically instrumented with the [Scope Swift agent](http://home.undefinedlabs.com/goto/swift-agent). It supports Xcode projects as well as Swift Package Manager packages for iOS, macOS or tvOS platforms.
 
 ## About Scope
 
@@ -18,8 +18,8 @@ GitHub Action to run your tests automatically instrumented with the [Scope iOS a
    steps:
      - name: Checkout
        uses: actions/checkout@v1
-     - name: Scope for iOS
-       uses: undefinedlabs/scope-for-ios-action@v1
+     - name: Scope for Swift
+       uses: undefinedlabs/scope-for-swift-action@v1
        with:
          dsn: ${{ secrets.SCOPE_DSN }} #required
    ```
@@ -29,14 +29,13 @@ GitHub Action to run your tests automatically instrumented with the [Scope iOS a
 These are the optional parameters of the action:
 
 ```yaml
-workspace: .xcworkspace file, if not set workspace will be autoselected
-project:  .xcodeproj file, if not set project will be autoselected
-scheme: Scheme to test, if not set scheme will be autoselected
+platform: Platform to run: "ios", "macos" or "tvos". By default: "ios"
+workspace: .xcworkspace file, if not set, workspace will be autoselected
+project:  .xcodeproj file, if not set, project will be autoselected
+scheme: Scheme to test, if not set, scheme will be autoselected
 configuration: configuration for testing, by default: 'Debug'
 sdk:  Sdk used for building, by default: 'iphonesimulator' will be used
 destination: destination for testing, by default: 'platform=iOS Simulator,name=iPhone 11'
-instrumentHttpPayloads:  Whether Scope should instrument HTTP payloads, 'false' by default
 agentVersion: Version of the Scope agent to use for testing, by default the latest stable
+codePath: Enable Codepath functionality, false by default
 ```
-
-<!--For SPM packages, in the case of multiplatform projects, executable targets are not supported in iOS. Desabling targets per platform is still not supported in SPM, so in the meantime you can put a Package_iOS.swift beside de original Package.swift and the action will use this for building-->
