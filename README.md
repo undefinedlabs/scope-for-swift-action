@@ -38,4 +38,5 @@ sdk:  Sdk used for building, by default: 'iphonesimulator' will be used
 destination: destination for testing, by default: 'platform=iOS Simulator,name=iPhone 11'
 agentVersion: Version of the Scope agent to use for testing, by default the latest stable
 codePath: Enable Codepath functionality, false by default
+extraParameters: These input will be added directly to the build/test command
 ```

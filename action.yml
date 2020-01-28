@@ -32,6 +32,9 @@ inputs:
   codePath:
     description: "Enable Codepath functionality, false by default"
     required: false
+  extraParameters:
+    description: "These input will be added directly to the build/test command"
+    required: false
 runs:
   using: "node12"
   main: "dist/index.js"
