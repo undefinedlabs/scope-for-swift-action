@@ -983,6 +983,7 @@ async function run() {
     const configuration = core.getInput("configuration") || "Debug";
     const agentVersion = core.getInput("agentVersion");
     const codePathEnabled = core.getInput("codePath") === "true";
+    const extraParameters = core.getInput("extraParameters") || "";
 
     if (codePathEnabled) {
       //If project uses testplan force use of code coverage
@@ -992,10 +993,14 @@ async function run() {
       }
     }
 
+    //Create folder to store files
+    if (!fs.existsSync(scopeDir)) {
+      fs.mkdirSync(scopeDir);
+    }
+
     //Read project
     const workspace = await getWorkspace();
     let xcodeproj = await getXCodeProj();
-    let isSPM = false;
     var projectParameter;
 
     if (workspace) {
@@ -1005,12 +1010,11 @@ async function run() {
       console.log(`Project selected: ${xcodeproj}`);
       projectParameter = "-project " + xcodeproj;
     } else if (fs.existsSync("Package.swift")) {
-      isSPM = true;
-      xcodeproj = await generateProjectFromSPM();
-      projectParameter = "-project " + xcodeproj;
+      await swiftPackageRun(extraParameters, codePathEnabled, agentVersion);
+      return;
     } else {
       core.setFailed(
-        "Unable to find the workspace or xcodeproj. Please set with.workspace or.xcodeproj"
+        "Unable to find workspace, project or Swift package file. Please set with.workspace or.xcodeproj"
       );
     }
 
@@ -1022,9 +1026,6 @@ async function run() {
 
     const configFilePath = scopeDir + "/" + configfileName;
 
-    if (!fs.existsSync(scopeDir)) {
-      fs.mkdirSync(scopeDir);
-    }
     createXCConfigFile(configFilePath, scopeFrameworkPath);
 
     //download scope
@@ -1052,7 +1053,8 @@ async function run() {
       derivedDataPath +
       ' -destination "' +
       destination +
-      '"';
+      '"' +
+      extraParameters;
     const result = await exec.exec(buildCommand, null, null);
 
     uploadSymbols(projectParameter, scheme, dsn, scopeFrameworkToolsPath);
@@ -1104,7 +1106,8 @@ async function run() {
         testRun +
         ' -destination "' +
         destination +
-        '"';
+        '"' +
+        extraParameters;
       try {
         await exec.exec(testCommand, null, null);
       } catch (error) {
@@ -1129,7 +1132,8 @@ async function run() {
         derivedDataPath +
         ' -destination "' +
         destination +
-        '"';
+        '"' +
+        extraParameters;
       let auxOutput = "";
       const options = {};
       options.listeners = {
@@ -1146,7 +1150,7 @@ async function run() {
         ) {
           await runScopeCoverageWithSettings(
             settings.buildSettings,
-            isSPM,
+            false,
             scopeFrameworkToolsPath
           );
         }
@@ -1164,6 +1168,49 @@ async function run() {
     }
   } catch (error) {
     core.setFailed(error.message);
+  }
+}
+
+async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
+  //download scope
+  await downloadLatestScope(agentVersion);
+  let codeCoverParam = "";
+  if (codePathEnabled) {
+    codeCoverParam = " --enable-code-coverage ";
+  }
+
+  const scopeMacFrameworkPath = scopeDir + scope_macos_path;
+  const scopeMacFrameworkToolsPath =
+    scope_macos_path + "/ScopeAgent.framework/Resources/";
+
+  //build and test
+
+  let buildTestCommand =
+    "swift test " +
+    codeCoverParam +
+    " -Xswiftc " +
+    "-F" +
+    scopeMacFrameworkPath +
+    " " +
+    " -Xswiftc -framework -Xswiftc ScopeAgent -Xlinker -rpath -Xlinker " +
+    scopeMacFrameworkPath +
+    extraParameters;
+  const resultTest = await exec.exec(buildTestCommand, null, null);
+
+  // Upload symbols
+  let runScriptCommand =
+    "sh -c " + scopeDir + scopeMacFrameworkToolsPath + "upload_symbols";
+  exec.exec(runScriptCommand, null, {
+    env: {
+      ...envVars,
+      TARGET_BUILD_DIR:
+        process.env["GITHUB_WORKSPACE"] + "/.build/x86_64-apple-macosx/debug"
+    },
+    ignoreReturnCode: true
+  });
+
+  if (codePathEnabled) {
+    await runScopeCoverageWithSettings(null, true, scopeMacFrameworkToolsPath);
   }
 }
 
@@ -1271,7 +1318,14 @@ async function getScheme(workspace, xcodeproj) {
         myOutput += data.toString();
       }
     };
-    await exec.exec(command, null, options);
+    try {
+      await exec.exec(command, null, options);
+    } catch (error) {
+      core.setFailed(
+        "Unable to automatically select a Scheme. Please set with .scheme parameter"
+      );
+      throw error;
+    }
     const info = JSON.parse(myOutput);
     const aux = info.workspace || info.project;
     const schemes = aux.schemes;
@@ -1358,7 +1412,7 @@ function uploadSymbols(projectParameter, scheme, dsn, scopeFrameworkToolsPath) {
       ...envVars,
       TARGET_BUILD_DIR: xctestDir
     },
-    ignoreReturnCode: false
+    ignoreReturnCode: true
   });
 }
 
@@ -1392,7 +1446,9 @@ async function runScopeCoverageWithSettings(
     env: {
       ...buildSettings,
       SCOPE_DSN: envVars[SCOPE_DSN],
-      TMPDIR: os.tmpdir() + "/",
+      TMPDIR: isSPM
+        ? process.env["GITHUB_WORKSPACE"] + "/.build/x86_64-apple-macosx/debug"
+        : os.tmpdir() + "/",
       PRODUCT_BUNDLE_IDENTIFIER: isSPM
         ? ""
         : buildSettings.PRODUCT_BUNDLE_IDENTIFIER
