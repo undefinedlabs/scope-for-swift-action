@@ -257,7 +257,11 @@ async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
 
   let testError;
   try {
-    await exec.exec(buildTestCommand, null, null);
+    await exec.exec(buildTestCommand, null, {
+      env: {
+        ...envVars
+      }
+    });
   } catch (error) {
     testError = error.message;
   }
