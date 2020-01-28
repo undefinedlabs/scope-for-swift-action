@@ -1195,8 +1195,17 @@ async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
     " -Xswiftc -framework -Xswiftc ScopeAgent -Xlinker -rpath -Xlinker " +
     scopeMacFrameworkPath +
     extraParameters;
-  const resultTest = await exec.exec(buildTestCommand, null, null);
 
+  let testError;
+  try {
+    await exec.exec(buildTestCommand, null, null);
+  } catch (error) {
+    testError = error.message;
+  }
+
+  if (testError) {
+    core.setFailed(testError.message);
+  }
   // Upload symbols
   let runScriptCommand =
     "sh -c " + scopeDir + scopeMacFrameworkToolsPath + "upload_symbols";
