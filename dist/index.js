@@ -1200,7 +1200,9 @@ async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
   try {
     await exec.exec(buildTestCommand, null, {
       env: {
-        ...envVars
+        ...envVars,
+        SCOPE_COMMIT_SHA: envVars["GITHUB_SHA"],
+        SCOPE_SOURCE_ROOT: envVars["GITHUB_WORKSPACE"]
       }
     });
   } catch (error) {
@@ -1487,24 +1489,6 @@ async function insertEnvVariables(file, target) {
   await insertEnvVariable(
     "SCOPE_SOURCE_ROOT",
     envVars["GITHUB_WORKSPACE"] || "",
-    file,
-    target
-  );
-  await insertEnvVariable(
-    "GITLAB_CI",
-    envVars["GITLAB_CI"] || "",
-    file,
-    target
-  );
-  await insertEnvVariable(
-    "CI_JOB_ID",
-    envVars["CI_JOB_ID"] || "",
-    file,
-    target
-  );
-  await insertEnvVariable(
-    "CI_JOB_URL",
-    envVars["CI_JOB_URL"] || "",
     file,
     target
   );
