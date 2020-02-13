@@ -5,7 +5,6 @@ inputs:
   dsn:
     description: "Scope DSN"
     required: true
-    default: "${{ secrets.SCOPE_DSN }}"
   platform:
     description: 'Platform to run: \"ios\", \"macos\" or \"tvos\". By default: \"ios\"'
     required: false
