@@ -70,7 +70,7 @@ async function run() {
       console.log(`Project selected: ${xcodeproj}`);
       projectParameter = "-project " + xcodeproj;
     } else if (fs.existsSync("Package.swift")) {
-      if (core.getInput("forceSPM")) {
+      if (core.getInput("forceSPM") === "true") {
         await swiftPackageRun(extraParameters, codePathEnabled, agentVersion);
         return;
       } else {
