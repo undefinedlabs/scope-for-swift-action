@@ -5,9 +5,11 @@ inputs:
   dsn:
     description: "Scope DSN"
     required: true
+    default: "${{ secrets.SCOPE_DSN }}"
   platform:
     description: 'Platform to run: \"ios\", \"macos\" or \"tvos\". By default: \"ios\"'
     required: false
+    default: "ios"
   workspace:
     description: ".xcworkspace file, if not set, workspace will be autoselected"
     required: false
@@ -20,21 +22,30 @@ inputs:
   sdk:
     description: 'Sdk used for building, by default: \"iphonesimulator\" will be used'
     required: false
+    default: "iphonesimulator"
   destination:
     description: 'Destination for testing, by default: \"platform=iOS Simulator,name=iPhone 11\"'
     required: false
+    default: '\"platform=iOS Simulator,name=iPhone 11\"'
   configuration:
     description: 'Configuration for testing, by default: \"Debug\"'
     required: false
+    default: '\"Debug\"'
   agentVersion:
     description: "Version of the Scope agent to use for testing, by default the latest stable"
     required: false
   codePath:
     description: "Enable Codepath functionality, false by default"
     required: false
+    default: false
   extraParameters:
     description: "These input will be added directly to the build/test command"
     required: false
+    default: ""
+  forceSPM:
+    description: If the project is a Swift Package Manager, force to use directly 'swift test' instead of converting previously to xcodeproj. Experimental use.
+    required: false
+    default: false
 runs:
   using: "node12"
   main: "dist/index.js"

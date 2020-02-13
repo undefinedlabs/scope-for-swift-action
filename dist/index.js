@@ -1001,6 +1001,7 @@ async function run() {
     //Read project
     const workspace = await getWorkspace();
     let xcodeproj = await getXCodeProj();
+    let isSPM = false;
     var projectParameter;
 
     if (workspace) {
@@ -1010,8 +1011,14 @@ async function run() {
       console.log(`Project selected: ${xcodeproj}`);
       projectParameter = "-project " + xcodeproj;
     } else if (fs.existsSync("Package.swift")) {
-      await swiftPackageRun(extraParameters, codePathEnabled, agentVersion);
-      return;
+      if(  core.getInput("forceSPM") ) {
+        await swiftPackageRun(extraParameters, codePathEnabled, agentVersion);
+        return;
+      } else {
+        isSPM = true;
+        xcodeproj = await generateProjectFromSPM();
+        projectParameter = "-project " + xcodeproj;
+      }
     } else {
       core.setFailed(
         "Unable to find workspace, project or Swift package file. Please set with.workspace or.xcodeproj"
@@ -1150,7 +1157,7 @@ async function run() {
         ) {
           await runScopeCoverageWithSettings(
             settings.buildSettings,
-            false,
+            isSPM,
             scopeFrameworkToolsPath
           );
         }
@@ -1232,6 +1239,7 @@ async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
 function getPathForPlatform(platform) {
   switch (platform) {
     case "macos":
+    case "mac":
       return scope_macos_path;
     case "tvos":
       return scope_tvos_path;
@@ -1243,6 +1251,7 @@ function getPathForPlatform(platform) {
 function getToolsPathForPlatform(platform) {
   switch (platform) {
     case "macos":
+    case "mac":
       return scope_macos_path + "/ScopeAgent.framework/Resources/";
     case "tvos":
       return scope_tvos_path + "/ScopeAgent.framework/";
@@ -1254,6 +1263,7 @@ function getToolsPathForPlatform(platform) {
 function getSDKForPlatform(platform) {
   switch (platform) {
     case "macos":
+    case "mac":
       return "macosx";
     case "tvos":
       return "appletvsimulator";
@@ -1265,6 +1275,7 @@ function getSDKForPlatform(platform) {
 function getDestinationForPlatform(platform) {
   switch (platform) {
     case "macos":
+    case "mac":
       return "platform=macOS,arch=x86_64";
     case "tvos":
       return "platform=tvOS Simulator,name=Apple TV 4K";
