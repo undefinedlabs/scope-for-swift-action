@@ -21,15 +21,12 @@ inputs:
   sdk:
     description: 'Sdk used for building, by default: \"iphonesimulator\" will be used'
     required: false
-    default: "iphonesimulator"
   destination:
     description: 'Destination for testing, by default: \"platform=iOS Simulator,name=iPhone 11\"'
     required: false
-    default: '\"platform=iOS Simulator,name=iPhone 11\"'
   configuration:
     description: 'Configuration for testing, by default: \"Debug\"'
     required: false
-    default: '\"Debug\"'
   agentVersion:
     description: "Version of the Scope agent to use for testing, by default the latest stable"
     required: false

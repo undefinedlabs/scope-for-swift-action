@@ -1001,7 +1001,6 @@ async function run() {
     //Read project
     const workspace = await getWorkspace();
     let xcodeproj = await getXCodeProj();
-    let isSPM = false;
     var projectParameter;
 
     if (workspace) {
@@ -1015,13 +1014,12 @@ async function run() {
         await swiftPackageRun(extraParameters, codePathEnabled, agentVersion);
         return;
       } else {
-        isSPM = true;
         xcodeproj = await generateProjectFromSPM();
         projectParameter = "-project " + xcodeproj;
       }
     } else {
       core.setFailed(
-        "Unable to find workspace, project or Swift package file. Please set with.workspace or.xcodeproj"
+        "Unable to find workspace, project or Swift package file. Please set with workspace or xcodeproj"
       );
     }
 
@@ -1157,7 +1155,7 @@ async function run() {
         ) {
           await runScopeCoverageWithSettings(
             settings.buildSettings,
-            isSPM,
+            false,
             scopeFrameworkToolsPath
           );
         }
