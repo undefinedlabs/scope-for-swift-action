@@ -1224,6 +1224,8 @@ async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
     env: {
       ...envVars,
       TARGET_BUILD_DIR:
+        process.env["GITHUB_WORKSPACE"] + "/.build/x86_64-apple-macosx/debug",
+      CONFIGURATION_BUILD_DIR:
         process.env["GITHUB_WORKSPACE"] + "/.build/x86_64-apple-macosx/debug"
     },
     ignoreReturnCode: true
@@ -1434,7 +1436,8 @@ function uploadSymbols(projectParameter, scheme, dsn, scopeFrameworkToolsPath) {
   exec.exec(runScriptCommand, null, {
     env: {
       ...envVars,
-      TARGET_BUILD_DIR: xctestDir
+      TARGET_BUILD_DIR: xctestDir,
+      CONFIGURATION_BUILD_DIR: xctestDir
     },
     ignoreReturnCode: true
   });
