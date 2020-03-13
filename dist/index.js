@@ -1005,17 +1005,17 @@ async function run() {
 
     if (workspace) {
       console.log(`Workspace selected: ${workspace}`);
-      projectParameter = "-workspace " + workspace;
+      projectParameter = "-workspace " + `"${workspace}"`;
     } else if (xcodeproj) {
       console.log(`Project selected: ${xcodeproj}`);
-      projectParameter = "-project " + xcodeproj;
+      projectParameter = "-project " + `"${xcodeproj}"`;
     } else if (fs.existsSync("Package.swift")) {
       if (core.getInput("forceSPM") === "true") {
         await swiftPackageRun(extraParameters, codePathEnabled, agentVersion);
         return;
       } else {
         xcodeproj = await generateProjectFromSPM();
-        projectParameter = "-project " + xcodeproj;
+        projectParameter = "-project " + `"${xcodeproj}"`;
       }
     } else {
       core.setFailed(
@@ -1051,18 +1051,17 @@ async function run() {
       " -configuration " +
       configuration +
       " -scheme " +
-      scheme +
+      `"${scheme}"` +
       " -sdk " +
       sdk +
       " -derivedDataPath " +
       derivedDataPath +
-      ' -destination "' +
-      destination +
-      '"' +
+      " -destination " +
+      `"${destination}" ` +
       extraParameters;
     const result = await exec.exec(buildCommand, null, null);
 
-    uploadSymbols(projectParameter, scheme, dsn, scopeFrameworkToolsPath);
+    uploadSymbols(projectParameter, dsn, scopeFrameworkToolsPath);
 
     //Fol all testruns that are configured
     let testRuns = await getXCTestRuns();
@@ -1072,7 +1071,7 @@ async function run() {
       //modify xctestrun with Scope variables
 
       let plutilExportCommand =
-        "plutil -convert json -o " + testrunJson + " " + testRun;
+        "plutil -convert json -o " + testrunJson + ` "${testRun}"`;
       await exec.exec(plutilExportCommand, null, null);
 
       let jsonString = fs.readFileSync(testrunJson, "utf8");
@@ -1108,7 +1107,7 @@ async function run() {
         "xcodebuild test-without-building " +
         codeCoverParam +
         " -xctestrun " +
-        testRun +
+        `"${testRun}"` +
         ' -destination "' +
         destination +
         '"' +
@@ -1130,14 +1129,13 @@ async function run() {
         " " +
         projectParameter +
         " -scheme " +
-        scheme +
+        `"${scheme}"` +
         " -sdk " +
         sdk +
         " -derivedDataPath " +
         derivedDataPath +
-        ' -destination "' +
-        destination +
-        '"' +
+        " -destination " +
+        `"${destination}" ` +
         extraParameters;
       let auxOutput = "";
       const options = {};
@@ -1199,6 +1197,7 @@ async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
     " " +
     " -Xswiftc -framework -Xswiftc ScopeAgent -Xlinker -rpath -Xlinker " +
     scopeMacFrameworkPath +
+    " " +
     extraParameters;
 
   let testError;
@@ -1430,7 +1429,7 @@ const downloadFile = async (url, path) => {
   });
 };
 
-function uploadSymbols(projectParameter, scheme, dsn, scopeFrameworkToolsPath) {
+function uploadSymbols(projectParameter, dsn, scopeFrameworkToolsPath) {
   let runScriptCommand =
     "sh -c " + scopeDir + scopeFrameworkToolsPath + "upload_symbols";
   exec.exec(runScriptCommand, null, {
@@ -1534,8 +1533,7 @@ async function insertEnvVariable(name, value, file, target) {
       name +
       '" -string ' +
       value +
-      " " +
-      file;
+      ` "${file}"`;
     await exec.exec(insertCommand, null, null);
   }
 }
