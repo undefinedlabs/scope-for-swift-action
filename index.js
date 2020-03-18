@@ -231,6 +231,8 @@ async function run() {
   } catch (error) {
     core.setFailed(error.message);
   }
+  //Clean up
+  fs.rmdirSync(scopeDir, { recursive: true });
 }
 
 async function swiftPackageRun(extraParameters, codePathEnabled, agentVersion) {
