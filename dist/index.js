@@ -1494,14 +1494,26 @@ async function insertEnvVariables(file, target) {
     target
   );
   await insertEnvVariable(
+    "SCOPE_SOURCE_ROOT",
+    envVars["GITHUB_WORKSPACE"] || "",
+    file,
+    target
+  );
+  await insertEnvVariable(
     "GITHUB_REPOSITORY",
     envVars["GITHUB_REPOSITORY"] || "",
     file,
     target
   );
   await insertEnvVariable(
-    "SCOPE_SOURCE_ROOT",
-    envVars["GITHUB_WORKSPACE"] || "",
+    "GITHUB_RUN_ID",
+    envVars["GITHUB_RUN_ID"] || "",
+    file,
+    target
+  );
+  await insertEnvVariable(
+    "GITHUB_RUN_NUMBER",
+    envVars["GITHUB_RUN_NUMBER"] || "",
     file,
     target
   );
