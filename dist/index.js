@@ -1517,12 +1517,49 @@ async function insertEnvVariables(file, target) {
     file,
     target
   );
+
+  await insertEnvVariable(
+    "SCOPE_AUTO_INSTRUMENT",
+    envVars["SCOPE_AUTO_INSTRUMENT"] || "",
+    file,
+    target
+  );
+
+  await insertEnvVariable(
+    "SCOPE_SERVICE",
+    envVars["SCOPE_SERVICE"] || "",
+    file,
+    target
+  );
+
   await insertEnvVariable(
     "SCOPE_SET_GLOBAL_TRACER",
     envVars["SCOPE_SET_GLOBAL_TRACER"] || "",
     file,
     target
   );
+
+  await insertEnvVariable(
+    "SCOPE_TESTING_MODE",
+    envVars["SCOPE_TESTING_MODE"] || "",
+    file,
+    target
+  );
+
+  await insertEnvVariable(
+    "SCOPE_METADATA",
+    envVars["SCOPE_METADATA"] || "",
+    file,
+    target
+  );
+
+  await insertEnvVariable(
+    "SCOPE_CONFIGURATION",
+    envVars["SCOPE_CONFIGURATION"] || "",
+    file,
+    target
+  );
+
   await insertEnvVariable(
     "SCOPE_INSTRUMENTATION_HTTP_PAYLOADS",
     envVars["SCOPE_INSTRUMENTATION_HTTP_PAYLOADS"] || "",
@@ -1533,6 +1570,27 @@ async function insertEnvVariables(file, target) {
   await insertEnvVariable(
     "SCOPE_INSTRUMENTATION_HTTP_CLIENT",
     envVars["SCOPE_INSTRUMENTATION_HTTP_CLIENT"] || "",
+    file,
+    target
+  );
+
+  await insertEnvVariable(
+    "SCOPE_INSTRUMENTATION_HTTP_HEADERS",
+    envVars["SCOPE_INSTRUMENTATION_HTTP_HEADERS"] || "",
+    file,
+    target
+  );
+
+  await insertEnvVariable(
+    "SCOPE_RUNNER_ENABLED",
+    envVars["SCOPE_RUNNER_ENABLED"] || "",
+    file,
+    target
+  );
+
+  await insertEnvVariable(
+    "SCOPE_RUNNER_EXCLUDE_BRANCHES",
+    envVars["SCOPE_RUNNER_EXCLUDE_BRANCHES"] || "",
     file,
     target
   );
